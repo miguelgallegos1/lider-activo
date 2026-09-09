@@ -194,19 +194,27 @@ function archivoSeleccionado(){
     if(!isFinite(audio.duration)){
       // Algunas grabaciones de celular no traen la duración en los
       // metadatos; hay que "buscar" hasta el final para calcularla.
-      audio.currentTime=1e101;
-      audio.addEventListener('timeupdate',function onTU(){
-        audio.removeEventListener('timeupdate',onTU);
-        const d=audio.duration;
-        if(isFinite(d)){
-          if(d<30){rechazar('El audio debe tener al menos 30 segundos');return;}
-          if(d>300){rechazar('El audio no puede superar los 5 minutos');return;}
-          aceptar(d);
-        } else {
-          // No se pudo calcular la duración; dejamos continuar igual.
-          aceptar(null);
-        }
-      },{once:true});
+      // Este truco funciona en Chrome/Android, pero en Safari/iOS a
+      // veces no dispara "timeupdate" (o lanza una excepción al
+      // buscar fuera de rango); si eso pasa, el timeout de más abajo
+      // deja pasar el archivo igual sin bloquear al usuario.
+      try{
+        audio.currentTime=1e101;
+        audio.addEventListener('timeupdate',function onTU(){
+          audio.removeEventListener('timeupdate',onTU);
+          const d=audio.duration;
+          if(isFinite(d)){
+            if(d<30){rechazar('El audio debe tener al menos 30 segundos');return;}
+            if(d>300){rechazar('El audio no puede superar los 5 minutos');return;}
+            aceptar(d);
+          } else {
+            // No se pudo calcular la duración; dejamos continuar igual.
+            aceptar(null);
+          }
+        },{once:true});
+      }catch(e){
+        aceptar(null);
+      }
       return;
     }
     if(audio.duration<30){rechazar('El audio debe tener al menos 30 segundos');return;}
