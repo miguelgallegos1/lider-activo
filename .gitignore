@@ -1,0 +1,25 @@
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Django
+voiceapp/db.sqlite3
+voiceapp/staticfiles/
+voiceapp/media/
+
+# Secretos / configuración local
+.env
+*.env
+!.env.example
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
