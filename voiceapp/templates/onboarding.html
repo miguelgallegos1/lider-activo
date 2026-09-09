@@ -41,9 +41,8 @@ nav{height:60px;background:white;display:flex;align-items:center;justify-content
 .skip-btn:hover{background:var(--gray200)}
 
 /* HERO */
-.hero{background:var(--brand-vivid);color:var(--gray900);padding:2.5rem 2rem;text-align:center}
-.hero h1{font-size:2rem;font-weight:700;margin-bottom:.75rem}
-.hero p{font-size:1rem;opacity:.82;max-width:520px;margin:0 auto;line-height:1.6}
+.hero{background:var(--brand-vivid);color:var(--gray900);padding:1.75rem 2rem;text-align:center}
+.hero p{font-size:1.05rem;font-weight:600;max-width:560px;margin:0 auto;line-height:1.5}
 
 /* Diagrama: Usuario -> ElevenLabs -> ChatGPT -> Usuario */
 .flow-diagram{display:flex;align-items:flex-start;justify-content:center;gap:.4rem;margin-top:1.35rem;flex-wrap:wrap}
@@ -128,8 +127,8 @@ main{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
 
 @media(max-width:600px){
   nav{padding:10px 1rem;height:auto;min-height:60px;flex-wrap:wrap;row-gap:8px}
-  .hero{padding:2rem 1.25rem}
-  .hero h1{font-size:1.6rem}
+  .hero{padding:1.5rem 1.25rem}
+  .hero p{font-size:.92rem}
   .card{padding:1.25rem}
   main{padding:1.5rem 1rem}
   .consent-modal{padding:1.35rem}
@@ -180,8 +179,7 @@ main{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
 </nav>
 
 <div class="hero">
-  <h1>Haz que la IA hable con tu voz</h1>
-  <p>Entrena tu voz una sola vez y todos tus mensajes sonarán como tú.</p>
+  <p>Entrena tu voz una sola vez para que la IA hable como tú en todos tus mensajes.</p>
   <div class="flow-diagram" aria-hidden="true">
     <div class="flow-node">
       <div class="flow-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
@@ -349,7 +347,7 @@ function validateName(){
 
 function tieneConsentimiento(){
   if(!consentimientoAceptado){
-    toast('Debes aceptar el aviso de tratamiento de datos personales para clonar tu voz','warn',5000);
+    toast('Debes aceptar el aviso de datos personales para clonar tu voz','warn',5000);
     return false;
   }
   return true;
@@ -401,7 +399,7 @@ async function toggleRec(){
     },1000);
 
   }catch(e){
-    toast('No se pudo acceder al micrófono','error');
+    toast('No se pudo acceder al micrófono. Revisa los permisos del navegador.','error');
   }
 }
 
@@ -429,23 +427,67 @@ function archivoSeleccionado(){
   }
 
   const url=URL.createObjectURL(f);
-  const audio=new Audio(url);
-  audio.addEventListener('loadedmetadata',()=>{
+  const audio=new Audio();
+  let resuelto=false;
+
+  const limpiar=()=>{
+    audio.removeEventListener('loadedmetadata',onMeta);
+    audio.removeEventListener('error',onError);
+    clearTimeout(timeoutId);
+  };
+
+  const aceptar=(duracion)=>{
+    if(resuelto)return; resuelto=true;
+    limpiar();
     URL.revokeObjectURL(url);
-    if(audio.duration<30){
-      toast('El audio debe tener al menos 30 segundos','warn');
-      document.getElementById('fileInput').value='';
-      return;
-    }
-    if(audio.duration>300){
-      toast('El audio no puede superar los 5 minutos','warn');
-      document.getElementById('fileInput').value='';
-      return;
-    }
     document.getElementById('fileReady').style.display='flex';
-    document.getElementById('fileName').textContent=f.name+' ('+Math.round(audio.duration)+'s)';
+    document.getElementById('fileName').textContent=f.name+(duracion?' ('+Math.round(duracion)+'s)':'');
     document.getElementById('btnCloneFile').disabled=false;
-  });
+  };
+
+  const rechazar=(msg)=>{
+    if(resuelto)return; resuelto=true;
+    limpiar();
+    URL.revokeObjectURL(url);
+    toast(msg,'warn');
+    document.getElementById('fileInput').value='';
+  };
+
+  const onMeta=()=>{
+    if(!isFinite(audio.duration)){
+      // Algunas grabaciones de celular no traen la duración en los
+      // metadatos; hay que "buscar" hasta el final para calcularla.
+      audio.currentTime=1e101;
+      audio.addEventListener('timeupdate',function onTU(){
+        audio.removeEventListener('timeupdate',onTU);
+        const d=audio.duration;
+        if(isFinite(d)){
+          if(d<30){rechazar('El audio debe tener al menos 30 segundos');return;}
+          if(d>300){rechazar('El audio no puede superar los 5 minutos');return;}
+          aceptar(d);
+        } else {
+          // No se pudo calcular la duración; dejamos continuar igual.
+          aceptar(null);
+        }
+      },{once:true});
+      return;
+    }
+    if(audio.duration<30){rechazar('El audio debe tener al menos 30 segundos');return;}
+    if(audio.duration>300){rechazar('El audio no puede superar los 5 minutos');return;}
+    aceptar(audio.duration);
+  };
+
+  const onError=()=>{
+    rechazar('No se pudo leer este archivo. Prueba con otro formato (MP3, WAV o M4A).');
+  };
+
+  const timeoutId=setTimeout(()=>{
+    if(!resuelto) aceptar(null);
+  },8000);
+
+  audio.addEventListener('loadedmetadata',onMeta);
+  audio.addEventListener('error',onError);
+  audio.src=url;
 }
 
 async function clonarArchivo(){
@@ -473,10 +515,10 @@ async function enviarClone(form){
       toast(data.mensaje,'warn',6000);
       setTimeout(()=>window.location='/mensajes/',3000);
     } else {
-      toast('Error al clonar: '+(data.error||'Intenta de nuevo'),'error');
+      toast(data.error||'No se pudo clonar la voz. Intenta de nuevo.','error');
     }
   }catch(e){
-    toast('Error de conexión','error');
+    toast('Error de conexión. Revisa tu internet e intenta de nuevo.','error');
   }
 }
 

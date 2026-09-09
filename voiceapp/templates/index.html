@@ -36,9 +36,8 @@
     .train-link:hover { background: var(--brand); color: white; }
 
     /* HERO */
-    .hero { background: var(--brand-vivid); color: var(--gray-900); padding: 2.5rem 2rem; text-align: center; }
-    .hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: .75rem; }
-    .hero p { font-size: 1rem; opacity: .82; max-width: 520px; margin: 0 auto; line-height: 1.6; }
+    .hero { background: var(--brand-vivid); color: var(--gray-900); padding: 1.75rem 2rem; text-align: center; }
+    .hero p { font-size: 1.05rem; font-weight: 600; max-width: 560px; margin: 0 auto; line-height: 1.5; }
 
     /* Diagrama: Usuario -> ElevenLabs -> ChatGPT -> Usuario */
     .flow-diagram { display: flex; align-items: flex-start; justify-content: center; gap: .4rem; margin-top: 1.35rem; flex-wrap: wrap; }
@@ -181,9 +180,8 @@
       .nav-right { flex-wrap: wrap; gap: 8px; }
       .voice-indicator { gap: 10px; }
       main { padding: 1.5rem 1rem; }
-      .hero { padding: 2rem 1.25rem; }
-      .hero h1 { font-size: 1.5rem; }
-      .hero p { font-size: .9rem; }
+      .hero { padding: 1.5rem 1.25rem; }
+      .hero p { font-size: .92rem; }
       .card { padding: 1.25rem; }
       .tabs { flex-wrap: wrap; }
       .tab-btn { flex: 1 1 33%; font-size: .78rem; padding: .7rem .4rem; gap: 5px; }
@@ -223,8 +221,7 @@
 </nav>
 
 <div class="hero">
-  <h1>Transforma tu mensaje en comunicación profesional</h1>
-  <p>Escribe o graba tu mensaje y la IA lo mejora y convierte en audio claro y profesional para tu equipo.</p>
+  <p>Escribe o graba tu mensaje: la IA lo mejora y lo convierte en un audio claro y profesional para tu equipo.</p>
   <div class="flow-diagram" aria-hidden="true">
     <div class="flow-node">
       <div class="flow-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
@@ -650,7 +647,7 @@
       document.getElementById('record-status').innerHTML = '<strong>Grabando...</strong> Toca para detener';
       document.getElementById('btn-audio').disabled = true;
     } catch (e) {
-      mostrarToast('No se pudo acceder al micrófono', 'error');
+      mostrarToast('No se pudo acceder al micrófono. Revisa los permisos del navegador.', 'error');
     }
   }
 
@@ -713,7 +710,7 @@
 
   function compartirWhatsApp() {
     const texto = document.getElementById('texto-mejorado').textContent;
-    if (!texto || texto === '—') { mostrarToast('Primero genera un mensaje', 'error'); return; }
+    if (!texto || texto === '—') { mostrarToast('Genera un mensaje primero', 'error'); return; }
     const mensaje = 'Mensaje generado con Líder Activo:\n\n' + texto;
     window.open('https://wa.me/?text=' + encodeURIComponent(mensaje), '_blank');
   }
@@ -763,10 +760,10 @@ async function eliminarVoz(voiceId) {
       mostrarToast('Voz eliminada correctamente');
       cargarVoces();
     } else {
-      mostrarToast('Error al eliminar: ' + (data.error || 'Intenta de nuevo'), 'error');
+      mostrarToast(data.error || 'No se pudo eliminar la voz. Intenta de nuevo.', 'error');
     }
   } catch (e) {
-    mostrarToast('Error de conexión', 'error');
+    mostrarToast('Error de conexión. Revisa tu internet e intenta de nuevo.', 'error');
   }
 }
 function confirmarEliminar(voiceId, name) {

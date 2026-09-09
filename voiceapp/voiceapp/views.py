@@ -52,6 +52,7 @@ def entrenar_voz(request):
         voice = eleven_client.voices.ivc.create(
             name=voice_name,
             files=files_bytes,
+            labels={},  # el SDK envía un valor inválido si se omite este parámetro
         )
 
         return JsonResponse({
@@ -74,8 +75,7 @@ def entrenar_voz(request):
             }, status=200)
 
         return JsonResponse({
-            'error': str(e),
-            'detalle': traceback.format_exc()
+            'error': 'No se pudo clonar la voz. Verifica tu conexión e intenta de nuevo en unos segundos.'
         }, status=500)
 
 # =========================
@@ -109,7 +109,9 @@ def procesar_texto(request):
         })
 
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({'error': 'No se pudo procesar el mensaje. Intenta de nuevo en unos segundos.'}, status=500)
 
 # =========================
 # 🎧 PROCESAR AUDIO
@@ -154,7 +156,9 @@ def procesar_audio(request):
         })
 
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({'error': 'No se pudo procesar el audio. Intenta de nuevo en unos segundos.'}, status=500)
 
 
 # =========================
@@ -260,4 +264,6 @@ def eliminar_voz(request):
         eleven_client.voices.delete(data.get('voice_id'))
         return JsonResponse({'ok': True})
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({'error': 'No se pudo eliminar la voz. Intenta de nuevo en unos segundos.'}, status=500)
