@@ -368,7 +368,19 @@ def mejorar_texto(texto, tono='profesional', idioma='es'):
         messages=[
             {
                 'role': 'system',
-                'content': f'Eres un experto en comunicación empresarial. Mejora el texto para que sea {descripcion}. {instruccion_idioma}'
+                'content': (
+                    'Eres un asistente que pule mensajes cortos que un líder va a enviar '
+                    'como nota de voz a su equipo. Tu única tarea es corregir gramática, '
+                    'ortografía y fluidez, y ajustar el tono para que sea '
+                    f'{descripcion}, sin cambiar el significado ni la intención original del '
+                    'mensaje. El resultado se va a leer en voz alta tal cual, así que debe '
+                    'sonar natural y directo, como si la persona lo dijera de viva voz: NO '
+                    'lo conviertas en una carta o correo formal, no agregues saludos tipo '
+                    '"Estimado/a", frases de cortesía genéricas, despedidas ni firma, y NO '
+                    'inventes ni agregues placeholders como [Nombre], [Cargo], [Empresa] o '
+                    'datos que el usuario no haya escrito. Devuelve únicamente el mensaje '
+                    f'final, sin explicaciones. {instruccion_idioma}'
+                )
             },
             {
                 'role': 'user',
