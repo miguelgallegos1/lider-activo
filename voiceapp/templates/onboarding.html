@@ -4,12 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Líder Activo</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23038554'/%3E%3Cg stroke='white' stroke-width='2.4' stroke-linecap='round'%3E%3Cline x1='7' y1='14' x2='7' y2='18'/%3E%3Cline x1='11.4' y1='10' x2='11.4' y2='22'/%3E%3Cline x1='15.8' y1='6' x2='15.8' y2='26'/%3E%3Cline x1='20.2' y1='11' x2='20.2' y2='21'/%3E%3Cline x1='24.6' y1='9' x2='24.6' y2='23'/%3E%3C/g%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --brand:#038554;--brand-dark:#005227;--brand-light:#E5FBF5;--brand-vivid:#03BB85;
-  --success:#2563EB;--success-light:#EFF6FF;
+  --success:var(--brand);--success-light:var(--brand-light);
   --danger:#DC2626;
   --gray50:#F5F8F7;--gray100:#ECF1EF;--gray200:#DCE4E1;
   --gray400:#93A19C;--gray500:#5F6B66;--gray700:#383E3B;--gray800:#1E2422;--gray900:#101413;
@@ -17,6 +18,18 @@
 }
 body{font-family:'Inter',sans-serif;background:var(--gray50);min-height:100vh;color:var(--gray800)}
 svg{display:block}
+
+/* CONSENTIMIENTO — modal bloqueante, primero que nada */
+.consent-overlay{position:fixed;inset:0;background:rgba(16,20,19,.6);display:flex;align-items:center;justify-content:center;z-index:10000;padding:1rem}
+.consent-modal{background:white;border-radius:var(--radius);max-width:440px;width:100%;padding:1.75rem;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.consent-head{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px}
+.consent-head svg{flex-shrink:0;color:var(--brand-dark);margin-top:1px}
+.consent-title{font-size:.95rem;font-weight:700;color:var(--gray900)}
+.consent-body{font-size:.82rem;color:var(--gray800);line-height:1.65;margin-bottom:1.35rem}
+.consent-actions{display:flex;gap:10px}
+.consent-actions button{flex:1;margin-top:0}
+.btn-deny{background:var(--gray100);color:var(--gray800);border:none;padding:12px;border-radius:8px;font-size:.9rem;font-weight:600;font-family:inherit;cursor:pointer;transition:background .2s}
+.btn-deny:hover{background:var(--gray200)}
 
 /* NAV */
 nav{height:60px;background:white;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;border-bottom:1px solid var(--gray200)}
@@ -27,14 +40,19 @@ nav{height:60px;background:white;display:flex;align-items:center;justify-content
 .skip-btn{background:var(--gray100);border:none;padding:10px 16px;border-radius:8px;font-weight:600;font-family:inherit;cursor:pointer;font-size:.875rem;color:var(--gray800);transition:background .2s}
 .skip-btn:hover{background:var(--gray200)}
 
-/* HERO */
-.hero{background:var(--brand-vivid);color:var(--gray900);padding:3rem 2rem;text-align:center}
+/* HERO — marca de agua de onda + efecto de aclarar/opacar, sin animación que altere el tamaño */
+.hero{position:relative;overflow:hidden;background:var(--brand-vivid);color:var(--gray900);padding:3rem 2rem;text-align:center}
+.hero::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='140' viewBox='0 0 240 140'%3E%3Cpath d='M0 70 Q30 20 60 70 T120 70 T180 70 T240 70' fill='none' stroke='%23101413' stroke-width='3'/%3E%3Cpath d='M0 102 Q30 62 60 102 T120 102 T180 102 T240 102' fill='none' stroke='%23101413' stroke-width='3'/%3E%3Cpath d='M0 38 Q30 -2 60 38 T120 38 T180 38 T240 38' fill='none' stroke='%23101413' stroke-width='3'/%3E%3C/svg%3E");
+  background-repeat:repeat;background-size:240px 140px;opacity:.08;
+}
+.hero::after{content:'';position:absolute;inset:0;pointer-events:none;background:var(--gray900);opacity:.03;animation:hero-breathe 3.6s ease-in-out infinite}
+@keyframes hero-breathe{0%,100%{opacity:.02}50%{opacity:.09}}
+@media (prefers-reduced-motion:reduce){.hero::after{animation:none;opacity:.04}}
+.hero>*{position:relative;z-index:1}
 .hero h1{font-size:2rem;font-weight:700;margin-bottom:.75rem}
 .hero p{font-size:1rem;opacity:.82;max-width:520px;margin:0 auto;line-height:1.6}
-.hero-waves{display:flex;align-items:flex-end;justify-content:center;gap:4px;height:28px;margin:1.5rem auto 0}
-.hero-waves span{width:3px;height:100%;border-radius:2px 2px 0 0;background:var(--gray900);opacity:.22;transform-origin:bottom;animation:wave-pulse 1.8s ease-in-out infinite;animation-delay:calc(var(--i) * .06s)}
-@keyframes wave-pulse{0%,100%{transform:scaleY(.28);opacity:.14}50%{transform:scaleY(1);opacity:.34}}
-@media (prefers-reduced-motion:reduce){.hero-waves span{animation:none;transform:scaleY(.6);opacity:.22}}
 
 /* MAIN */
 main{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
@@ -97,14 +115,16 @@ main{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
 /* DIVIDER */
 .divider{height:1px;background:var(--gray200);margin:1rem 0}
 
-/* TOAST */
-.toast-area{position:fixed;top:1rem;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;width:340px}
-.toast{padding:10px 18px;border-radius:8px;font-size:.875rem;font-weight:500;opacity:0;transform:translateY(-8px);transition:all .3s;text-align:center;font-family:inherit}
-.toast.show{opacity:1;transform:translateY(0)}
-.toast.ok{background:var(--gray800);color:white}
-.toast.success{background:var(--success);color:white}
-.toast.error{background:var(--danger);color:white}
-.toast.warn{background:#D97706;color:white}
+/* TOAST — abajo centrado, con contador y botón cerrar */
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(10px);background:var(--gray800);color:white;padding:.7rem .7rem .7rem 1.1rem;border-radius:10px;font-size:.875rem;font-weight:500;opacity:0;transition:opacity .25s,transform .25s;z-index:9999;max-width:min(92vw,380px);display:flex;align-items:center;gap:10px;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.28);text-align:left;font-family:inherit}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.toast.success{background:var(--success)}
+.toast.error{background:var(--danger)}
+.toast.warn{background:#B45309}
+.toast-msg{flex:1;line-height:1.45}
+.toast-timer{flex-shrink:0;width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-variant-numeric:tabular-nums}
+.toast-close{flex-shrink:0;background:none;border:none;color:rgba(255,255,255,.7);font-size:1.1rem;line-height:1;cursor:pointer;padding:2px 4px}
+.toast-close:hover{color:white}
 
 @media(max-width:600px){
   .hero h1{font-size:1.6rem}
@@ -119,7 +139,31 @@ main{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
 </head>
 <body>
 
-<div class="toast-area" id="toastArea"></div>
+<div class="toast" id="toast"></div>
+
+<div class="consent-overlay" id="consentOverlay">
+  <div class="consent-modal">
+    <div class="consent-head">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>
+      <div class="consent-title">Aviso de tratamiento de datos personales</div>
+    </div>
+    <p class="consent-body">
+      Tu muestra de voz es un <strong>dato biométrico</strong>. Al aceptar, autorizas su uso
+      <strong>exclusivamente para crear tu voz digital (clonación)</strong> dentro de esta aplicación.
+      Tu voz <strong>no se comparte, vende ni cede a terceros</strong>, y puedes eliminarla cuando quieras desde "Mis voces".
+      Sin aceptar no podrás usar esta pantalla, pero puedes seguir usando la app sin voz clonada.
+    </p>
+    <div class="consent-actions">
+      <button class="btn-deny" onclick="responderConsentimiento(false)">No acepto</button>
+      <button class="btn-primary" onclick="responderConsentimiento(true)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        Acepto
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="appContent" inert>
 
 <nav>
   <div class="nav-brand">
@@ -134,35 +178,9 @@ main{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
 <div class="hero">
   <h1>Haz que la IA hable con tu voz</h1>
   <p>Entrena tu voz una sola vez y todos tus mensajes sonarán como tú.</p>
-  <div class="hero-waves" aria-hidden="true">
-    <span style="--i:0"></span><span style="--i:1"></span><span style="--i:2"></span><span style="--i:3"></span><span style="--i:4"></span><span style="--i:5"></span><span style="--i:6"></span><span style="--i:7"></span><span style="--i:8"></span><span style="--i:9"></span><span style="--i:10"></span><span style="--i:11"></span><span style="--i:12"></span><span style="--i:13"></span><span style="--i:14"></span><span style="--i:15"></span><span style="--i:16"></span><span style="--i:17"></span><span style="--i:18"></span><span style="--i:19"></span><span style="--i:20"></span><span style="--i:21"></span><span style="--i:22"></span><span style="--i:23"></span><span style="--i:24"></span><span style="--i:25"></span><span style="--i:26"></span><span style="--i:27"></span><span style="--i:28"></span><span style="--i:29"></span><span style="--i:30"></span><span style="--i:31"></span>
-  </div>
 </div>
 
 <main>
-
-  <div class="card" style="border-color:var(--brand);background:var(--brand-light);margin-bottom:1rem">
-    <div style="display:flex;gap:10px;align-items:flex-start">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px">
-          <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/>
-        </svg>
-        <div>
-        <p style="font-size:.8rem;font-weight:600;color:var(--gray900);margin-bottom:4px">Aviso de tratamiento de datos personales</p>
-        <p style="font-size:.75rem;color:var(--gray800);line-height:1.6">
-            Tu muestra de voz es un <strong>dato biométrico</strong>. Al aceptar, autorizas su uso
-            <strong>exclusivamente para crear tu voz digital (clonación)</strong> dentro de esta aplicación.
-            Tu voz <strong>no se comparte, vende ni cede a terceros</strong>, y puedes eliminarla cuando quieras desde "Mis voces".
-        </p>
-        <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer">
-            <input type="checkbox" id="consentimiento" onchange="verificarConsentimiento()"/>
-            <span style="font-size:.75rem;color:var(--gray900);font-weight:500">
-            Acepto
-            </span>
-        </label>
-        <p style="font-size:.72rem;color:var(--gray800);opacity:.75;margin-top:6px">Sin aceptar este aviso no podrás clonar tu voz, aunque sí puedes grabar o subir una muestra para probar.</p>
-        </div>
-    </div>
-  </div>
 
   <!-- NOMBRE DE LA VOZ -->
   <div class="card">
@@ -252,17 +270,44 @@ main{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
 
 </main>
 
+</div><!-- /appContent -->
+
 <script>
 let mediaRecorder=null,chunks=[],audioBlob=null,timerInt=null,secs=0;
+let consentimientoAceptado=false;
+let toastIntervalId=null;
 
 function toast(msg,type='ok',dur=3500){
-  const a=document.getElementById('toastArea');
-  const t=document.createElement('div');
-  t.className='toast '+type;
-  t.textContent=msg;
-  a.appendChild(t);
-  requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('show')));
-  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400)},dur);
+  const t=document.getElementById('toast');
+  clearInterval(toastIntervalId);
+  let restante=Math.max(1,Math.round(dur/1000));
+  t.innerHTML='<span class="toast-msg"></span><span class="toast-timer"></span><button class="toast-close" onclick="cerrarToast()" aria-label="Cerrar">&times;</button>';
+  t.querySelector('.toast-msg').textContent=msg;
+  t.querySelector('.toast-timer').textContent=restante;
+  t.className='toast show '+type;
+  toastIntervalId=setInterval(()=>{
+    restante--;
+    const el=t.querySelector('.toast-timer');
+    if(el) el.textContent=restante;
+    if(restante<=0) cerrarToast();
+  },1000);
+}
+function cerrarToast(){
+  clearInterval(toastIntervalId);
+  document.getElementById('toast').classList.remove('show');
+}
+
+function responderConsentimiento(aceptado){
+  const overlay=document.getElementById('consentOverlay');
+  const contenido=document.getElementById('appContent');
+  if(aceptado){
+    consentimientoAceptado=true;
+    overlay.style.display='none';
+    contenido.removeAttribute('inert');
+  } else {
+    toast('Sin aceptar el aviso no puedes entrenar tu voz. Te llevamos a la app principal.','warn',3500);
+    setTimeout(()=>window.location='/app/',2200);
+  }
 }
 
 function switchTab(tab){
@@ -272,13 +317,6 @@ function switchTab(tab){
   document.getElementById('panel-up').classList.toggle('active',tab==='up');
 }
 
-function verificarConsentimiento() {
-  const ok = document.getElementById('consentimiento').checked;
-  if (audioBlob) document.getElementById('btnCloneRec').disabled = !ok;
-  const fileReady = document.getElementById('fileInput').files.length > 0;
-  if (fileReady) document.getElementById('btnCloneFile').disabled = !ok;
-}
-
 function validateName(){
   const n=document.getElementById('voiceName').value.trim();
   if(!n){toast('Escribe un nombre para tu voz primero','warn');return null;}
@@ -286,7 +324,7 @@ function validateName(){
 }
 
 function tieneConsentimiento(){
-  if(!document.getElementById('consentimiento').checked){
+  if(!consentimientoAceptado){
     toast('Debes aceptar el aviso de tratamiento de datos personales para clonar tu voz','warn',5000);
     return false;
   }
@@ -320,7 +358,7 @@ async function toggleRec(){
       } else {
         audioBlob=new Blob(chunks,{type:'audio/webm'});
         document.getElementById('recStatus').innerHTML='Audio listo ('+secs+'s). Ya puedes clonar.';
-        document.getElementById('btnCloneRec').disabled=!document.getElementById('consentimiento').checked;
+        document.getElementById('btnCloneRec').disabled=false;
         toast('Muestra grabada correctamente','success');
       }
     };
@@ -382,7 +420,7 @@ function archivoSeleccionado(){
     }
     document.getElementById('fileReady').style.display='flex';
     document.getElementById('fileName').textContent=f.name+' ('+Math.round(audio.duration)+'s)';
-    document.getElementById('btnCloneFile').disabled=!document.getElementById('consentimiento').checked;
+    document.getElementById('btnCloneFile').disabled=false;
   });
 }
 
