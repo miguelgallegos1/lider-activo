@@ -19,7 +19,7 @@ let toastIntervalId=null;
  * gama amplia de sonidos, en vez de repetir siempre el mismo patrón.
  * Cada párrafo está pensado para leerse en unos 30s a ritmo normal; si
  * la grabación sigue después del último, se vuelve a resaltar desde el
- * primero (hasta el máximo de 5 minutos que ya valida el resto del flujo).
+ * primero (hasta el máximo de 3 minutos que ya valida el resto del flujo).
  */
 const GUION = [
   'Buenos días a todo el equipo. Antes de empezar, quiero agradecerles el esfuerzo que ponen cada día en su trabajo. Esta semana cerramos con doscientos cuarenta y siete pedidos entregados a tiempo, y eso es un resultado excelente para todos nosotros. Sigamos así, cuidando cada detalle y apoyándonos entre todos.',
@@ -121,7 +121,7 @@ function tieneConsentimiento(){
   return true;
 }
 
-/** Inicia o detiene la grabación del micrófono; valida que dure entre 30s y 5min antes de habilitar "Clonar". */
+/** Inicia o detiene la grabación del micrófono; valida que dure entre 30s y 3min antes de habilitar "Clonar". */
 async function toggleRec(){
   if(mediaRecorder&&mediaRecorder.state==='recording'){mediaRecorder.stop();return;}
   try{
@@ -141,8 +141,8 @@ async function toggleRec(){
         audioBlob=null;
         document.getElementById('btnCloneRec').disabled=true;
         document.getElementById('recStatus').textContent='Toca para intentarlo de nuevo';
-      } else if(secs > 300){
-        toast('La muestra no puede superar los 5 minutos','warn');
+      } else if(secs > 180){
+        toast('La muestra no puede superar los 3 minutos','warn');
         audioBlob=null;
         document.getElementById('btnCloneRec').disabled=true;
         document.getElementById('recStatus').textContent='Toca para intentarlo de nuevo';
@@ -166,7 +166,7 @@ async function toggleRec(){
       document.getElementById('recTimer').textContent=secs+'s grabando...';
       document.getElementById('progFill').style.width=Math.min((secs/30)*100,100)+'%';
       resaltarGuion(secs);
-      if(secs>=300) mediaRecorder.stop();
+      if(secs>=180) mediaRecorder.stop();
     },1000);
 
   }catch(e){
@@ -189,7 +189,7 @@ async function clonarGrabacion(){
 
 /**
  * Valida el archivo de audio elegido en "Subir archivo" (tamaño y
- * duración entre 30s y 5min) antes de habilitar el botón de clonar.
+ * duración entre 30s y 3min) antes de habilitar el botón de clonar.
  * Incluye manejo especial para navegadores/formatos que no calculan
  * bien la duración de entrada (ver comentario más abajo) y un
  * timeout de respaldo para que la interfaz nunca se quede colgada
@@ -199,9 +199,9 @@ function archivoSeleccionado(){
   const f=document.getElementById('fileInput').files[0];
   if(!f)return;
 
-  const maxBytes=50*1024*1024;
+  const maxBytes=30*1024*1024;
   if(f.size>maxBytes){
-    toast('El archivo no puede superar los 50MB (≈ 5 minutos)','warn');
+    toast('El archivo no puede superar los 30MB (≈ 3 minutos)','warn');
     document.getElementById('fileInput').value='';
     return;
   }
@@ -248,7 +248,7 @@ function archivoSeleccionado(){
           const d=audio.duration;
           if(isFinite(d)){
             if(d<30){rechazar('El audio debe tener al menos 30 segundos');return;}
-            if(d>300){rechazar('El audio no puede superar los 5 minutos');return;}
+            if(d>180){rechazar('El audio no puede superar los 3 minutos');return;}
             aceptar(d);
           } else {
             // No se pudo calcular la duración; dejamos continuar igual.
@@ -261,7 +261,7 @@ function archivoSeleccionado(){
       return;
     }
     if(audio.duration<30){rechazar('El audio debe tener al menos 30 segundos');return;}
-    if(audio.duration>300){rechazar('El audio no puede superar los 5 minutos');return;}
+    if(audio.duration>180){rechazar('El audio no puede superar los 3 minutos');return;}
     aceptar(audio.duration);
   };
 
