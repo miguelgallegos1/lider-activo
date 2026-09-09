@@ -57,7 +57,11 @@ nav{height:60px;background:white;display:flex;align-items:center;justify-content
 @media (max-width:720px){
   .hero{padding:2rem 1.5rem}
   .hero-inner{flex-direction:column;align-items:center;text-align:center;gap:1.75rem}
-  .hero-copy{text-align:center}
+  /* En fila, flex:1 1 360px usa 360px como ancho mínimo (correcto).
+     Al pasar a columna, ese mismo valor pasa a ser el ALTO mínimo,
+     dejando un hueco enorme entre el texto y el diagrama; hay que
+     resetearlo aquí. */
+  .hero-copy{flex:0 1 auto;text-align:center}
   .hero-title{max-width:100%}
 }
 @media (max-width:480px){
