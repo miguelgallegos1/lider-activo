@@ -315,7 +315,18 @@ def procesar_audio(request):
         # La API de transcripción de OpenAI necesita un archivo real
         # en disco (no acepta bytes en memoria directamente), así que
         # el audio recibido se escribe primero a un archivo temporal.
-        with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as tmp:
+        # El sufijo del archivo temporal debe reflejar el formato real
+        # grabado por el navegador (el frontend ya lo manda en el
+        # nombre): en iPhone/Safari MediaRecorder graba en MP4, no en
+        # WebM, y Whisper usa la extensión para elegir cómo decodificar
+        # el archivo, así que forzar siempre ".webm" rompía la
+        # transcripción de grabaciones hechas desde iPhone.
+        EXTENSIONES_PERMITIDAS = {'.webm', '.mp4', '.m4a', '.ogg', '.wav', '.mp3', '.mpeg', '.mpga'}
+        _, extension = os.path.splitext(archivo_audio.name or '')
+        if extension.lower() not in EXTENSIONES_PERMITIDAS:
+            extension = '.webm'
+
+        with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as tmp:
             for chunk in archivo_audio.chunks():
                 tmp.write(chunk)
             tmp_path = tmp.name

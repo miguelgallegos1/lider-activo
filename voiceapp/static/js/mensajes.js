@@ -218,7 +218,12 @@ async function toggleGrabacion() {
         return;
       }
 
-      audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      // El Blob debe llevar el mimeType que realmente eligió el
+      // navegador (mediaRecorder.mimeType), no uno fijo: en
+      // iPhone/Safari MediaRecorder graba en MP4, no en WebM, y
+      // etiquetarlo distinto confunde tanto la reproducción como la
+      // detección de formato de Whisper del lado del servidor.
+      audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
       document.getElementById('record-status').innerHTML = `Audio listo (${segundos}s). Pulsa procesar.`;
       document.getElementById('btn-audio').disabled = false;
     };
@@ -240,6 +245,15 @@ async function toggleGrabacion() {
 // =====================
 // PROCESAR AUDIO
 // =====================
+/** Deduce una extensión de archivo razonable a partir del mimeType real de una grabación (ej. "audio/mp4;codecs=..." -> "mp4"). */
+function extensionParaMime(mime) {
+  if (!mime) return 'webm';
+  if (mime.includes('mp4')) return 'mp4';
+  if (mime.includes('ogg')) return 'ogg';
+  if (mime.includes('wav')) return 'wav';
+  return 'webm';
+}
+
 /** Envía el audio grabado al backend (/procesar-audio/) para transcribirlo, mejorarlo y regenerarlo en voz. */
 async function procesarAudio() {
   if (!audioBlob) { mostrarToast('Graba un mensaje primero', 'error'); return; }
@@ -251,7 +265,7 @@ async function procesarAudio() {
   btn.disabled = true; spinner.style.display = 'block';
 
   const formData = new FormData();
-  formData.append('audio', audioBlob, 'mensaje.webm');
+  formData.append('audio', audioBlob, 'mensaje.' + extensionParaMime(audioBlob.type));
   formData.append('tono', tono);
   formData.append('idioma', idioma);
   formData.append('voice_id', voiceId || '');

@@ -172,7 +172,13 @@ async function toggleRec(){
         document.getElementById('recStatus').textContent='Toca para intentarlo de nuevo';
         preview.hidden=true; preview.removeAttribute('src');
       } else {
-        audioBlob=new Blob(chunks,{type:'audio/webm'});
+        // El Blob debe llevar el mimeType que realmente eligió el
+        // navegador para grabar (mediaRecorder.mimeType), no uno fijo:
+        // en iPhone/Safari MediaRecorder graba en MP4, no en WebM: si
+        // se etiqueta el Blob como "audio/webm" con bytes que en
+        // realidad son MP4, el <audio> de abajo no puede decodificarlo
+        // y muestra "Error" aunque la grabación en sí esté bien.
+        audioBlob=new Blob(chunks,{type:mediaRecorder.mimeType||'audio/webm'});
         document.getElementById('recStatus').innerHTML='Audio listo ('+secs+'s). Escúchalo antes de clonar.';
         document.getElementById('btnCloneRec').disabled=false;
         // Reproductor para que el usuario verifique la calidad de la
@@ -206,6 +212,15 @@ async function toggleRec(){
   }
 }
 
+/** Deduce una extensión de archivo razonable a partir del mimeType real de una grabación (ej. "audio/mp4;codecs=..." -> "mp4"). */
+function extensionParaMime(mime){
+  if(!mime)return'webm';
+  if(mime.includes('mp4'))return'mp4';
+  if(mime.includes('ogg'))return'ogg';
+  if(mime.includes('wav'))return'wav';
+  return'webm';
+}
+
 /** Envía la muestra grabada por micrófono a /clonar-voz/. */
 async function clonarGrabacion(){
   if(!tieneConsentimiento())return;
@@ -213,7 +228,7 @@ async function clonarGrabacion(){
   if(!audioBlob){toast('Graba al menos 30 segundos primero','warn');return;}
   setLoading('btnCloneRec','spinRec',true);
   const form=new FormData();
-  form.append('samples',audioBlob,'voz.webm');
+  form.append('samples',audioBlob,'voz.'+extensionParaMime(audioBlob.type));
   form.append('voice_name',name);
   await enviarClone(form);
   setLoading('btnCloneRec','spinRec',false);
