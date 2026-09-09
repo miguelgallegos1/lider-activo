@@ -284,11 +284,32 @@ function copiarTexto() {
   navigator.clipboard.writeText(texto).then(() => mostrarToast('Texto copiado al portapapeles'));
 }
 
-function compartirWhatsApp() {
-  const texto = document.getElementById('texto-mejorado').textContent;
-  if (!texto || texto === '—') { mostrarToast('Genera un mensaje primero', 'error'); return; }
-  const mensaje = 'Mensaje generado con Líder Activo:\n\n' + texto;
-  window.open('https://wa.me/?text=' + encodeURIComponent(mensaje), '_blank');
+/**
+ * Comparte el audio generado (no el texto) usando la hoja de compartir
+ * nativa del sistema (Web Share API), donde WhatsApp aparece como una
+ * de las apps disponibles si está instalada. No existe un link de
+ * WhatsApp que adjunte un archivo directamente (wa.me solo admite
+ * texto), así que esta es la única forma real de mandar el audio: el
+ * usuario elige WhatsApp desde ese menú del sistema.
+ */
+async function compartirWhatsApp() {
+  if (!audioBase64) { mostrarToast('Genera un mensaje primero', 'error'); return; }
+
+  const binario = atob(audioBase64);
+  const bytes = new Uint8Array(binario.length);
+  for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+  const archivo = new File([bytes], 'mensaje-profesional.mp3', { type: 'audio/mpeg' });
+
+  if (!navigator.canShare || !navigator.canShare({ files: [archivo] })) {
+    mostrarToast('Tu navegador no permite compartir audio directo. Usa "Descargar audio" y adjúntalo desde WhatsApp.', 'warn', 6000);
+    return;
+  }
+
+  try {
+    await navigator.share({ files: [archivo], title: 'Mensaje generado con Líder Activo' });
+  } catch (e) {
+    if (e.name !== 'AbortError') mostrarToast('No se pudo compartir el audio.', 'error');
+  }
 }
 
 // =====================
