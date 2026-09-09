@@ -299,6 +299,7 @@ def procesar_audio(request):
         archivo_audio = request.FILES.get('audio')
         tono = request.POST.get('tono', 'profesional')
         idioma = request.POST.get('idioma', 'es')
+        voice_id = request.POST.get('voice_id') or None  # None => usa la voz por defecto de la cuenta
 
         if not archivo_audio:
             return JsonResponse({'error': 'No se recibió audio'}, status=400)
@@ -348,7 +349,7 @@ def procesar_audio(request):
             return JsonResponse({'error': motivo}, status=400)
 
         texto_mejorado = mejorar_texto(texto_transcrito, tono, idioma)
-        audio_b64 = texto_a_audio(texto_mejorado)
+        audio_b64 = texto_a_audio(texto_mejorado, voice_id)
 
         return JsonResponse({
             'texto_original': texto_transcrito,

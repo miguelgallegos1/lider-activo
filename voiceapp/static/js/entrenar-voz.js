@@ -8,6 +8,7 @@
 let mediaRecorder=null,chunks=[],audioBlob=null,timerInt=null,secs=0;
 let consentimientoAceptado=false;  // se pone en true solo cuando el usuario acepta el modal de consentimiento
 let toastIntervalId=null;
+let recPreviewUrl=null,filePreviewUrl=null;  // object URLs de los reproductores de verificación; se revocan al reemplazarlos
 
 /*
  * Guion sugerido para leer mientras se graba la muestra de voz.
@@ -107,6 +108,25 @@ function validateName(){
 }
 
 /**
+ * Bloquea "Grabar"/"Subir archivo" hasta que haya un nombre de voz
+ * escrito: sin nombre no tiene sentido dejar avanzar el resto del
+ * flujo, porque igual no se podría clonar al final. Se llama en cada
+ * tecla del campo de nombre y una vez al cargar la página.
+ */
+function onVoiceNameInput(){
+  const hayNombre=document.getElementById('voiceName').value.trim().length>0;
+  document.getElementById('sampleCard').classList.toggle('locked',!hayNombre);
+  document.getElementById('micBtn').disabled=!hayNombre;
+}
+onVoiceNameInput();
+
+/** Abre el selector de archivos de "Subir archivo", exigiendo primero el nombre de la voz. */
+function abrirSelectorArchivo(){
+  if(!validateName())return;
+  document.getElementById('fileInput').click();
+}
+
+/**
  * Segunda barrera de seguridad además del modal: aunque este código
  * solo es alcanzable después de aceptar el consentimiento (el resto
  * de la página queda "inert" hasta entonces), esta función se llama
@@ -124,6 +144,7 @@ function tieneConsentimiento(){
 /** Inicia o detiene la grabación del micrófono; valida que dure entre 30s y 3min antes de habilitar "Clonar". */
 async function toggleRec(){
   if(mediaRecorder&&mediaRecorder.state==='recording'){mediaRecorder.stop();return;}
+  if(!validateName())return;
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
     chunks=[];
@@ -136,20 +157,31 @@ async function toggleRec(){
       document.getElementById('progWrap').style.display='none';
       document.getElementById('recTimer').textContent='';
 
+      const preview=document.getElementById('recPreview');
+
       if(secs < 30){
         toast('La muestra debe tener al menos 30 segundos','warn');
         audioBlob=null;
         document.getElementById('btnCloneRec').disabled=true;
         document.getElementById('recStatus').textContent='Toca para intentarlo de nuevo';
+        preview.hidden=true; preview.removeAttribute('src');
       } else if(secs > 180){
         toast('La muestra no puede superar los 3 minutos','warn');
         audioBlob=null;
         document.getElementById('btnCloneRec').disabled=true;
         document.getElementById('recStatus').textContent='Toca para intentarlo de nuevo';
+        preview.hidden=true; preview.removeAttribute('src');
       } else {
         audioBlob=new Blob(chunks,{type:'audio/webm'});
-        document.getElementById('recStatus').innerHTML='Audio listo ('+secs+'s). Ya puedes clonar.';
+        document.getElementById('recStatus').innerHTML='Audio listo ('+secs+'s). Escúchalo antes de clonar.';
         document.getElementById('btnCloneRec').disabled=false;
+        // Reproductor para que el usuario verifique la calidad de la
+        // grabación antes de gastar la llamada a ElevenLabs clonando
+        // una muestra que podría salir mal (ruido, corte, etc.).
+        if(recPreviewUrl) URL.revokeObjectURL(recPreviewUrl);
+        recPreviewUrl=URL.createObjectURL(audioBlob);
+        preview.src=recPreviewUrl;
+        preview.hidden=false;
         toast('Muestra grabada correctamente','success');
       }
     };
@@ -199,6 +231,11 @@ function archivoSeleccionado(){
   const f=document.getElementById('fileInput').files[0];
   if(!f)return;
 
+  if(!validateName()){
+    document.getElementById('fileInput').value='';
+    return;
+  }
+
   const maxBytes=30*1024*1024;
   if(f.size>maxBytes){
     toast('El archivo no puede superar los 30MB (≈ 3 minutos)','warn');
@@ -223,6 +260,15 @@ function archivoSeleccionado(){
     document.getElementById('fileReady').style.display='flex';
     document.getElementById('fileName').textContent=f.name+(duracion?' ('+Math.round(duracion)+'s)':'');
     document.getElementById('btnCloneFile').disabled=false;
+    // Reproductor aparte del "url" de arriba (que solo se usaba para
+    // medir la duración y ya se revocó): deja escuchar el archivo
+    // antes de clonar, para verificar que se subió el correcto y que
+    // se oye bien.
+    if(filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
+    filePreviewUrl=URL.createObjectURL(f);
+    const preview=document.getElementById('filePreview');
+    preview.src=filePreviewUrl;
+    preview.hidden=false;
   };
 
   const rechazar=(msg)=>{
@@ -231,6 +277,8 @@ function archivoSeleccionado(){
     URL.revokeObjectURL(url);
     toast(msg,'warn');
     document.getElementById('fileInput').value='';
+    const preview=document.getElementById('filePreview');
+    preview.hidden=true; preview.removeAttribute('src');
   };
 
   const onMeta=()=>{
@@ -329,6 +377,9 @@ function resetFlow(){
   document.getElementById('progWrap').style.display='none';
   document.getElementById('btnCloneRec').disabled=true;
   document.querySelectorAll('.script-p').forEach(el=>el.classList.remove('active'));
+  if(recPreviewUrl){URL.revokeObjectURL(recPreviewUrl);recPreviewUrl=null;}
+  const preview=document.getElementById('recPreview');
+  preview.hidden=true; preview.removeAttribute('src');
   switchTab('rec');
   toast('Listo para grabar una nueva muestra','ok');
 }

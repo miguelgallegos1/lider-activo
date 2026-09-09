@@ -98,6 +98,14 @@ main{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
 
 .panel{display:none}.panel.active{display:block}
 
+/* NOMBRE OBLIGATORIO ANTES DE GRABAR/SUBIR */
+.name-required-hint{display:none;font-size:.8rem;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;margin-bottom:14px}
+#sampleCard.locked .name-required-hint{display:block}
+#sampleCard.locked .tabs-row,#sampleCard.locked .panel{opacity:.45;pointer-events:none}
+
+/* REPRODUCTOR DE VERIFICACIÓN (antes de clonar) */
+.preview-audio{width:100%;margin-top:12px;height:36px}
+
 /* GUION SUGERIDO */
 .script-card{border:1px solid var(--gray200);border-radius:var(--radius);margin-bottom:1rem;overflow:hidden}
 .script-toggle{width:100%;padding:12px 14px;background:var(--gray50);border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-family:inherit;font-size:.85rem;font-weight:600;color:var(--gray800);transition:background .2s}
