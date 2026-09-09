@@ -85,7 +85,8 @@ WSGI_APPLICATION = 'voiceapp.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        # En Vercel el filesystem es de solo lectura salvo /tmp.
+        'NAME': '/tmp/db.sqlite3' if os.getenv('VERCEL') else BASE_DIR / 'db.sqlite3',
     }
 }
 

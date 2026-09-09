@@ -17,7 +17,7 @@ Aplicación Django que ayuda a líderes de equipo a comunicar mejor sus mensajes
 - IA de texto: OpenAI (`gpt-4o-mini`, `whisper-1`).
 - Voz: ElevenLabs (clonación de voz + text-to-speech).
 - Frontend: HTML + CSS + JS vanilla (sin build step).
-- Deploy: configurado para Railway (`railway.json`).
+- Deploy: Railway (`railway.json`, servidor Gunicorn persistente) o Vercel (`vercel.json`, funciones serverless vía `api/index.py`).
 
 ## Configuración local
 
@@ -46,6 +46,20 @@ Aplicación Django que ayuda a líderes de equipo a comunicar mejor sus mensajes
 ## Deploy (Railway)
 
 En producción define en las variables de entorno de Railway: `SECRET_KEY` (una clave nueva y secreta), `DEBUG=False`, `ALLOWED_HOSTS` con el dominio público que asigne Railway, y las claves de `OPENAI_API_KEY` / `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID`. `railway.json` corre las migraciones, recolecta los estáticos (servidos con WhiteNoise) y levanta Gunicorn.
+
+## Deploy (Vercel)
+
+El proyecto no usa base de datos para nada de su funcionalidad (no hay `models.py`; el estado de "voz activa" vive en `localStorage` del navegador), así que el filesystem efímero de las funciones serverless de Vercel no afecta el uso real de la app.
+
+1. En [vercel.com](https://vercel.com), "Add New Project" → importar `miguelgallegos1/lider-activo` desde GitHub. Vercel detecta `vercel.json` automáticamente (usa `@vercel/python` sobre `api/index.py`, que expone la app Django como WSGI).
+2. En las variables de entorno del proyecto en Vercel, define:
+   - `SECRET_KEY` (una clave nueva, no la de desarrollo)
+   - `DEBUG=False`
+   - `ALLOWED_HOSTS=.vercel.app` (cubre el dominio de preview y de producción; agrega tu dominio propio si conectas uno)
+   - `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`
+3. Deploy. Cada push a `master` genera un deploy nuevo automáticamente; cada PR obtiene su propia URL de preview para ir probando.
+
+También se puede probar desde la terminal con `vercel` (CLI) apuntando a la raíz del repo.
 
 ## Nota de seguridad
 

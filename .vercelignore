@@ -1,0 +1,5 @@
+venv
+__pycache__
+voiceapp/db.sqlite3
+voiceapp/.env
+voiceapp/staticfiles
