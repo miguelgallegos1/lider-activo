@@ -8,11 +8,11 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --brand:#4F46E5;--brand-dark:#3730A3;--brand-light:#EEF2FF;
+  --brand:#C2410C;--brand-dark:#9A3412;--brand-light:#FFEDD5;
   --success:#059669;--success-light:#ECFDF5;
   --danger:#DC2626;
-  --gray50:#F9FAFB;--gray100:#F3F4F6;--gray200:#E5E7EB;
-  --gray400:#9CA3AF;--gray500:#6B7280;--gray800:#1F2937;--gray900:#111827;
+  --gray50:#F8F5F0;--gray100:#F1ECE4;--gray200:#E4DDD2;
+  --gray400:#A39A8C;--gray500:#6B6255;--gray800:#221F1A;--gray900:#141210;
   --radius:12px;
 }
 body{font-family:'Inter',sans-serif;background:var(--gray50);min-height:100vh;color:var(--gray800)}
@@ -27,7 +27,7 @@ nav{height:60px;background:white;display:flex;align-items:center;justify-content
 .skip-btn:hover{background:var(--gray200)}
 
 /* HERO */
-.hero{background:linear-gradient(135deg,#4F46E5,#7C3AED);color:white;padding:3rem 2rem;text-align:center}
+.hero{background:linear-gradient(135deg,var(--gray900),var(--brand));color:white;padding:3rem 2rem;text-align:center}
 .hero h1{font-size:2rem;font-weight:700;margin-bottom:.75rem}
 .hero p{font-size:1rem;opacity:.88;max-width:520px;margin:0 auto;line-height:1.6}
 
@@ -40,7 +40,7 @@ main{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
 
 /* INPUT */
 .vl-input{width:100%;padding:10px 12px;font-size:.9rem;font-family:inherit;border:1px solid var(--gray200);border-radius:8px;background:white;color:var(--gray800);outline:none;transition:border-color .2s}
-.vl-input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.vl-input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(194,65,12,.15)}
 
 /* TABS */
 .tabs-row{display:flex;gap:8px;margin-bottom:1rem}
@@ -66,7 +66,7 @@ main{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
 
 /* UPLOAD */
 .upload-zone{border:1px dashed var(--gray200);border-radius:var(--radius);padding:2rem 1rem;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:1rem}
-.upload-zone:hover{border-color:var(--brand);background:rgba(79,70,229,.02)}
+.upload-zone:hover{border-color:var(--brand);background:rgba(194,65,12,.04)}
 .upload-zone svg{width:30px;height:30px;fill:var(--gray400);margin-bottom:8px}
 .upload-zone p{font-size:.875rem;color:var(--gray500)}
 .upload-zone strong{color:var(--brand)}
@@ -128,21 +128,21 @@ main{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
 
 <main>
 
-  <div class="card" style="border-color:#FCD34D;background:#FFFBEB;margin-bottom:1rem">
+  <div class="card" style="border-color:var(--brand);background:var(--brand-light);margin-bottom:1rem">
     <div style="display:flex;gap:10px;align-items:flex-start">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="#D97706" style="flex-shrink:0;margin-top:2px">
+        <svg width="20" height="20" viewBox="0 0 24 24" style="fill:var(--brand-dark);flex-shrink:0;margin-top:2px">
         <path d="M12 2L1 21h22L12 2zm0 3.5L20.5 19h-17L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z"/>
         </svg>
         <div>
-        <p style="font-size:.8rem;font-weight:600;color:#92400E;margin-bottom:4px">Aviso de tratamiento de datos personales</p>
-        <p style="font-size:.75rem;color:#92400E;line-height:1.6">
-            Tu muestra de voz es un <strong>dato biométrico</strong> y será usada solo para crear tu voz 
-            <strong>Digital</strong>. 
+        <p style="font-size:.8rem;font-weight:600;color:var(--gray900);margin-bottom:4px">Aviso de tratamiento de datos personales</p>
+        <p style="font-size:.75rem;color:var(--gray800);line-height:1.6">
+            Tu muestra de voz es un <strong>dato biométrico</strong> y será usada solo para crear tu voz
+            <strong>Digital</strong>.
 
         </p>
         <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer">
             <input type="checkbox" id="consentimiento" onchange="verificarConsentimiento()"/>
-            <span style="font-size:.75rem;color:#92400E;font-weight:500">
+            <span style="font-size:.75rem;color:var(--gray900);font-weight:500">
             Acepto
             </span>
         </label>
