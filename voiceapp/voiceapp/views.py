@@ -29,6 +29,7 @@ from django.conf import settings
 
 from openai import OpenAI
 from elevenlabs.client import ElevenLabs
+from elevenlabs import VoiceSettings
 
 # Los clientes se crean una sola vez al iniciar el proceso (no en
 # cada request) para reutilizar la conexión HTTP con cada servicio.
@@ -174,6 +175,14 @@ def entrenar_voz(request):
         voice = eleven_client.voices.ivc.create(
             name=voice_name,
             files=files_bytes,
+            # Las muestras se graban con el micrófono del navegador o
+            # se suben desde el celular, así que casi siempre traen
+            # ruido de fondo (habitación, eco, ventilador, etc.). Ese
+            # ruido confunde al modelo de clonación y es la causa más
+            # común de que la voz clonada no se parezca a la real;
+            # ElevenLabs lo limpia con su propio modelo de aislamiento
+            # de audio antes de entrenar la voz.
+            remove_background_noise=True,
             # Si se omite "labels", el SDK envía un valor que la API
             # de ElevenLabs rechaza con el error 400 "Labels must be
             # serialized dictionary object." Pasar un diccionario
@@ -469,7 +478,29 @@ def texto_a_audio(texto, voice_id=None):
     audio_stream = eleven_client.text_to_speech.convert(
         voice_id=voice_id or settings.ELEVENLABS_VOICE_ID,
         text=texto,
-        model_id="eleven_multilingual_v2"
+        model_id="eleven_multilingual_v2",
+        # Sin voice_settings explícitos, ElevenLabs usa valores por
+        # defecto pensados para voces de stock, no para una voz recién
+        # clonada. Estos valores priorizan que el audio se parezca lo
+        # más posible a la voz original:
+        voice_settings=VoiceSettings(
+            # Similitud alta: prioriza sonar como la voz clonada por
+            # sobre cualquier otro criterio (es el parámetro con más
+            # impacto directo en el parecido con la voz real).
+            similarity_boost=0.9,
+            # Boost de parecido al hablante; consume algo más de
+            # cómputo/latencia a cambio de mayor fidelidad.
+            use_speaker_boost=True,
+            # Estabilidad media: si se sube demasiado la voz suena
+            # monótona/robótica; si se baja demasiado, generación tras
+            # generación deja de sonar como la misma persona.
+            stability=0.5,
+            # Sin exageración de estilo: en voces clonadas (a
+            # diferencia de las voces diseñadas de ElevenLabs) subir
+            # "style" tiende a alejar el resultado de cómo suena la
+            # persona real.
+            style=0.0,
+        ),
     )
 
     audio_bytes = b"".join(audio_stream)
