@@ -202,12 +202,24 @@ async function toggleGrabacion() {
     mediaRecorder = new MediaRecorder(stream);
     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
     mediaRecorder.onstop = () => {
-      audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       stream.getTracks().forEach(t => t.stop());
       clearInterval(timerInterval);
       document.getElementById('record-btn').className = 'record-btn idle';
-      document.getElementById('record-status').innerHTML = `Audio listo (${segundos}s). Pulsa procesar.`;
       document.getElementById('timer').textContent = '';
+
+      if (segundos < 2) {
+        // Un clip tan corto casi siempre es silencio o un toque
+        // accidental: Whisper no tiene nada real que transcribir y
+        // GPT terminaría "mejorando" texto vacío o basura.
+        audioBlob = null;
+        document.getElementById('record-status').textContent = 'Grabación muy corta. Intenta de nuevo.';
+        document.getElementById('btn-audio').disabled = true;
+        mostrarToast('Graba al menos 2 segundos de tu mensaje', 'error');
+        return;
+      }
+
+      audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      document.getElementById('record-status').innerHTML = `Audio listo (${segundos}s). Pulsa procesar.`;
       document.getElementById('btn-audio').disabled = false;
     };
     mediaRecorder.start();

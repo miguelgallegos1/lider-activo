@@ -303,6 +303,14 @@ def procesar_audio(request):
         if not archivo_audio:
             return JsonResponse({'error': 'No se recibió audio'}, status=400)
 
+        # La API de transcripción de OpenAI (Whisper) solo acepta
+        # archivos de hasta 25MB; se valida acá antes de escribir el
+        # archivo a disco y llamar a la API para fallar rápido y con
+        # un mensaje claro en vez de un error genérico de OpenAI.
+        LIMITE_AUDIO_BYTES = 25 * 1024 * 1024
+        if archivo_audio.size > LIMITE_AUDIO_BYTES:
+            return JsonResponse({'error': 'El audio no puede superar los 25MB.'}, status=400)
+
         # La API de transcripción de OpenAI necesita un archivo real
         # en disco (no acepta bytes en memoria directamente), así que
         # el audio recibido se escribe primero a un archivo temporal.
@@ -313,17 +321,27 @@ def procesar_audio(request):
 
         try:
             with open(tmp_path, 'rb') as f:
+                # No se fuerza el idioma de la transcripción: el
+                # usuario puede grabar en cualquier idioma y pedir el
+                # mensaje mejorado en otro (por ejemplo, hablar en
+                # español y pedir el resultado en inglés). Forzar
+                # language='es' aquí hacía que Whisper transcribiera
+                # mal cualquier grabación que no fuera en español.
                 transcripcion = openai_client.audio.transcriptions.create(
                     model='whisper-1',
                     file=f,
-                    language='es'
                 )
-            texto_transcrito = transcripcion.text
+            texto_transcrito = transcripcion.text.strip()
         finally:
             # Se borra el archivo temporal siempre, incluso si la
             # transcripción falla, para no dejar audios acumulados
             # en el disco del servidor.
             os.unlink(tmp_path)
+
+        if not texto_transcrito:
+            return JsonResponse({
+                'error': 'No se detectó voz en la grabación. Intenta de nuevo hablando más cerca del micrófono.'
+            }, status=400)
 
         bloqueado, motivo = verificar_contenido_prohibido(texto_transcrito)
         if bloqueado:
@@ -378,17 +396,30 @@ def mejorar_texto(texto, tono='profesional', idioma='es'):
             {
                 'role': 'system',
                 'content': (
-                    'Eres un asistente que pule mensajes cortos que un líder va a enviar '
-                    'como nota de voz a su equipo. Tu única tarea es corregir gramática, '
-                    'ortografía y fluidez, y ajustar el tono para que sea '
-                    f'{descripcion}, sin cambiar el significado ni la intención original del '
-                    'mensaje. El resultado se va a leer en voz alta tal cual, así que debe '
-                    'sonar natural y directo, como si la persona lo dijera de viva voz: NO '
-                    'lo conviertas en una carta o correo formal, no agregues saludos tipo '
-                    '"Estimado/a", frases de cortesía genéricas, despedidas ni firma, y NO '
-                    'inventes ni agregues placeholders como [Nombre], [Cargo], [Empresa] o '
-                    'datos que el usuario no haya escrito. Devuelve únicamente el mensaje '
-                    f'final, sin explicaciones. {instruccion_idioma}'
+                    '# Identidad\n'
+                    'Eres un asistente de redacción para un líder que envía mensajes '
+                    'como nota de voz a su equipo.\n\n'
+                    '# Instrucciones\n'
+                    '- Primero entiende la intención completa del mensaje del usuario.\n'
+                    '- Corrige gramática, ortografía, puntuación y sintaxis.\n'
+                    '- Reescribe el vocabulario y la construcción de las frases lo que '
+                    f'haga falta para que el tono sea claramente {descripcion}: el tono '
+                    'debe notarse, no te limites a corregir errores.\n'
+                    '- Conserva exactamente el mismo significado, intención e '
+                    'información del mensaje original. No agregues datos, peticiones, '
+                    'nombres, cargos ni empresas que el usuario no haya escrito.\n'
+                    '- El resultado se va a leer en voz alta tal cual, así que debe '
+                    'sonar natural y directo, como si la persona lo dijera de viva voz.\n'
+                    '- No lo conviertas en una carta o correo formal: nada de saludos '
+                    'tipo "Estimado/a [Nombre]", placeholders como [Nombre], [Cargo] o '
+                    '[Empresa], ni cierres de firma.\n'
+                    '- Si el mensaje original ya se dirige a un grupo (por ejemplo '
+                    '"equipo" o "compañeros"), puedes conservar o pulir esa forma de '
+                    'dirigirte a ellos, pero no inventes un destinatario nuevo.\n'
+                    f'- {instruccion_idioma}\n\n'
+                    '# Formato de salida\n'
+                    'Responde únicamente con el mensaje final. Sin explicaciones, sin '
+                    'comillas ni markdown.'
                 )
             },
             {
