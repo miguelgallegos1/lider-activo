@@ -56,6 +56,81 @@ def sin_autorizar(request):
 
 
 # =============================================================
+# 🚫 Moderación de contenido
+# =============================================================
+# Antes de mandar un texto a GPT o de usarlo para generar audio con
+# una voz clonada, se revisa que no contenga insultos ni lenguaje
+# de amenaza/extorsión, para evitar que la clonación de voz se use
+# para hacerse pasar por otra persona con fines maliciosos.
+
+# Insultos comunes en español. Filtro local (rápido, sin costo) que
+# además sirve de respaldo si la API de moderación de OpenAI falla.
+PALABRAS_OFENSIVAS = [
+    'idiota', 'estupido', 'estúpido', 'imbecil', 'imbécil', 'pendejo',
+    'hijo de puta', 'hijueputa', 'malparido', 'perra', 'puta',
+    'maricon', 'maricón', 'marica', 'gonorrea', 'zorra', 'cabron',
+    'cabrón', 'culicagado', 'hp',
+]
+
+# Frases típicas de amenaza o extorsión (pedir dinero/silencio bajo
+# amenaza, amenazas de daño, etc.).
+FRASES_AMENAZA = [
+    'te voy a matar', 'te vamos a matar', 'vas a morir', 'te mato',
+    'paga o', 'si no pagas', 'si no me pagas', 'transfiere o',
+    'tengo fotos tuyas', 'tengo un video tuyo', 'voy a filtrar',
+    'voy a publicar tus fotos', 'voy a hacerte daño',
+    'sabemos donde vives', 'sé donde vives',
+    'le va a pasar algo a tu familia', 'te va a pasar algo',
+]
+
+
+def _primer_termino_encontrado(texto_normalizado, terminos):
+    return next((t for t in terminos if t in texto_normalizado), None)
+
+
+def verificar_contenido_prohibido(texto):
+    """
+    Revisa si `texto` contiene insultos o lenguaje de amenaza/extorsión.
+
+    Combina dos capas:
+      1. Listas locales (PALABRAS_OFENSIVAS / FRASES_AMENAZA): rápidas,
+         sin costo, y funcionan aunque la API de moderación falle.
+      2. La API de Moderación de OpenAI, que detecta acoso, amenazas y
+         otro contenido dañino que las listas locales no cubren.
+
+    Devuelve (True, motivo) si el texto debe bloquearse, o
+    (False, None) si puede continuar normalmente.
+    """
+    texto_normalizado = texto.lower()
+
+    if _primer_termino_encontrado(texto_normalizado, PALABRAS_OFENSIVAS):
+        return True, 'El mensaje contiene lenguaje ofensivo y no se puede procesar.'
+
+    if _primer_termino_encontrado(texto_normalizado, FRASES_AMENAZA):
+        return True, 'El mensaje parece contener amenazas o extorsión y no se puede procesar.'
+
+    try:
+        resultado = openai_client.moderations.create(
+            model='omni-moderation-latest',
+            input=texto,
+        )
+        flag = resultado.results[0]
+        if flag.flagged:
+            categorias = flag.categories
+            if getattr(categorias, 'harassment_threatening', False) or getattr(categorias, 'violence', False):
+                return True, 'El mensaje parece contener amenazas o extorsión y no se puede procesar.'
+            return True, 'El mensaje contiene lenguaje ofensivo o inapropiado y no se puede procesar.'
+    except Exception:
+        # Si la API de moderación falla (timeout, error de red, etc.)
+        # no se bloquea el flujo solo por eso: ya pasó el filtro local
+        # de arriba, que cubre los casos más graves.
+        import traceback
+        print(traceback.format_exc())
+
+    return False, None
+
+
+# =============================================================
 # 🎙️ Entrenar voz (clonación con ElevenLabs)
 # =============================================================
 
@@ -91,6 +166,10 @@ def entrenar_voz(request):
         files_bytes = [archivo.read() for archivo in archivos]
 
         voice_name = request.POST.get('voice_name', 'MiVoz').strip() or 'MiVoz'
+
+        bloqueado, motivo = verificar_contenido_prohibido(voice_name)
+        if bloqueado:
+            return JsonResponse({'error': 'El nombre de la voz contiene lenguaje inapropiado. Elige otro nombre.'}, status=400)
 
         voice = eleven_client.voices.ivc.create(
             name=voice_name,
@@ -165,6 +244,10 @@ def procesar_texto(request):
         if not texto_original:
             return JsonResponse({'error': 'El texto no puede estar vacío'}, status=400)
 
+        bloqueado, motivo = verificar_contenido_prohibido(texto_original)
+        if bloqueado:
+            return JsonResponse({'error': motivo}, status=400)
+
         texto_mejorado = mejorar_texto(texto_original, tono, idioma)
         audio_b64 = texto_a_audio(texto_mejorado, voice_id)
 
@@ -232,6 +315,10 @@ def procesar_audio(request):
             # transcripción falla, para no dejar audios acumulados
             # en el disco del servidor.
             os.unlink(tmp_path)
+
+        bloqueado, motivo = verificar_contenido_prohibido(texto_transcrito)
+        if bloqueado:
+            return JsonResponse({'error': motivo}, status=400)
 
         texto_mejorado = mejorar_texto(texto_transcrito, tono, idioma)
         audio_b64 = texto_a_audio(texto_mejorado)
