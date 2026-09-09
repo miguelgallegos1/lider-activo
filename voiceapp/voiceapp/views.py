@@ -24,6 +24,9 @@ def index(request):
 def onboarding(request):
     return render(request, 'onboarding.html')
 
+def sin_autorizar(request):
+    return render(request, 'sin_autorizar.html')
+
 #======================
 # 🎙️ ENTRENAR VOZ
 #======================
@@ -203,14 +206,23 @@ def listar_voces(request):
         else:
             voces_raw = resultado  # a veces es directo una lista
 
-        voces = [
-            {
+        generos = {'male': 'Masculino', 'female': 'Femenino'}
+
+        def nombre_limpio(nombre):
+            # ElevenLabs nombra sus voces prediseñadas como
+            # "Roger - Laid-Back, Casual, Resonant"; nos quedamos
+            # solo con el nombre propio.
+            return nombre.split(' - ')[0].strip()
+
+        voces = []
+        for v in voces_raw:
+            labels = getattr(v, 'labels', None) or {}
+            voces.append({
                 "voice_id": v.voice_id,
-                "name": v.name,
+                "name": nombre_limpio(v.name),
                 "category": getattr(v, 'category', None),
-            }
-            for v in voces_raw
-        ]
+                "gender": generos.get(labels.get('gender')),
+            })
         # Las voces creadas por el usuario ('cloned') primero; las
         # prediseñadas de ElevenLabs (no se pueden borrar) después.
         voces.sort(key=lambda v: 0 if v['category'] == 'cloned' else 1)

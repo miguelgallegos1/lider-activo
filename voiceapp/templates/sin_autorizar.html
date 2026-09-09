@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Sin autorización · Líder Activo</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23038554'/%3E%3Cg stroke='white' stroke-width='2.4' stroke-linecap='round'%3E%3Cline x1='7' y1='14' x2='7' y2='18'/%3E%3Cline x1='11.4' y1='10' x2='11.4' y2='22'/%3E%3Cline x1='15.8' y1='6' x2='15.8' y2='26'/%3E%3Cline x1='20.2' y1='11' x2='20.2' y2='21'/%3E%3Cline x1='24.6' y1='9' x2='24.6' y2='23'/%3E%3C/g%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --brand:#038554;--brand-dark:#005227;--brand-light:#E5FBF5;
+  --gray50:#F5F8F7;--gray100:#ECF1EF;--gray200:#DCE4E1;
+  --gray400:#93A19C;--gray700:#383E3B;--gray800:#1E2422;--gray900:#101413;
+  --radius:12px;
+}
+body{font-family:'Inter',sans-serif;background:var(--gray50);min-height:100vh;color:var(--gray800);display:flex;flex-direction:column}
+svg{display:block}
+
+nav{height:60px;background:white;display:flex;align-items:center;padding:0 2rem;border-bottom:1px solid var(--gray200)}
+.nav-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem;color:var(--gray900)}
+.nav-icon{width:32px;height:32px;background:var(--brand);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.nav-icon svg{width:18px;height:18px;color:white}
+
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem 1.5rem}
+.card{background:white;border-radius:var(--radius);border:1px solid var(--gray200);box-shadow:0 1px 3px rgba(0,0,0,.08);padding:2.25rem;max-width:440px;width:100%;text-align:center}
+.card-icon{width:56px;height:56px;border-radius:50%;background:var(--gray100);color:var(--gray700);display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem}
+.card-icon svg{width:26px;height:26px}
+h1{font-size:1.2rem;font-weight:700;color:var(--gray900);margin-bottom:.6rem}
+p{font-size:.875rem;color:var(--gray800);line-height:1.6;margin-bottom:1.5rem}
+.actions{display:flex;flex-direction:column;gap:.6rem}
+.btn-primary{padding:12px;font-size:.9rem;font-weight:600;font-family:inherit;border:none;border-radius:8px;background:var(--brand);color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;transition:background .2s}
+.btn-primary:hover{background:var(--brand-dark)}
+.btn-ghost{padding:12px;font-size:.875rem;font-weight:500;font-family:inherit;border:1px solid var(--gray200);border-radius:8px;background:transparent;color:var(--gray700);cursor:pointer;text-decoration:none;display:block;transition:background .2s}
+.btn-ghost:hover{background:var(--gray50)}
+
+.app-footer{text-align:center;padding:1.5rem 1rem;font-size:.72rem;color:var(--gray400);border-top:1px solid var(--gray200)}
+.app-footer strong{color:var(--gray700)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
+    </div>
+    Líder Activo
+  </div>
+</nav>
+
+<main>
+  <div class="card">
+    <div class="card-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m14.5 9.5-5 5"/><path d="m9.5 9.5 5 5"/></svg>
+    </div>
+    <h1>No autorizaste el tratamiento de tus datos</h1>
+    <p>
+      Sin tu autorización no podemos crear tu voz digital, ya que la muestra de voz es un dato biométrico.
+      Puedes seguir usando Líder Activo para mejorar y transformar tus mensajes con la voz predeterminada,
+      o volver a intentarlo cuando quieras.
+    </p>
+    <div class="actions">
+      <a class="btn-primary" href="/mensajes/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        Ir a Mensajes
+      </a>
+      <a class="btn-ghost" href="/entrenar-voz/">Intentar de nuevo</a>
+    </div>
+  </div>
+</main>
+
+<footer class="app-footer">
+  Desarrollado por <strong>Miguel Gallegos Calderón</strong>
+</footer>
+
+</body>
+</html>
