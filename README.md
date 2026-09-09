@@ -31,6 +31,7 @@ Aplicación Django que ayuda a líderes de equipo a comunicar mejor sus mensajes
    ```
    SECRET_KEY=...
    DEBUG=True
+   ALLOWED_HOSTS=127.0.0.1,localhost
    OPENAI_API_KEY=...
    ELEVENLABS_API_KEY=...
    ELEVENLABS_VOICE_ID=...
@@ -41,6 +42,10 @@ Aplicación Django que ayuda a líderes de equipo a comunicar mejor sus mensajes
    python manage.py migrate
    python manage.py runserver
    ```
+
+## Deploy (Railway)
+
+En producción define en las variables de entorno de Railway: `SECRET_KEY` (una clave nueva y secreta), `DEBUG=False`, `ALLOWED_HOSTS` con el dominio público que asigne Railway, y las claves de `OPENAI_API_KEY` / `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID`. `railway.json` corre las migraciones, recolecta los estáticos (servidos con WhiteNoise) y levanta Gunicorn.
 
 ## Nota de seguridad
 

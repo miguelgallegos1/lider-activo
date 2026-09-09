@@ -1,5 +1,7 @@
 django>=4.2
 openai>=1.30
+elevenlabs>=1.5
+requests>=2.31
 python-dotenv>=1.0
 gunicorn>=21.2
 whitenoise>=6.6
