@@ -89,12 +89,13 @@ def procesar_texto(request):
 
         texto_original = data.get('texto', '').strip()
         tono = data.get('tono', 'profesional')
+        idioma = data.get('idioma', 'es')
         voice_id = data.get('voice_id')   # 🔥 CLAVE
 
         if not texto_original:
             return JsonResponse({'error': 'El texto no puede estar vacío'}, status=400)
 
-        texto_mejorado = mejorar_texto(texto_original, tono)
+        texto_mejorado = mejorar_texto(texto_original, tono, idioma)
 
         audio_b64 = texto_a_audio(texto_mejorado, voice_id)  # 🔥 AQUÍ SE USA VOZ CLONADA
 
@@ -119,6 +120,7 @@ def procesar_audio(request):
     try:
         archivo_audio = request.FILES.get('audio')
         tono = request.POST.get('tono', 'profesional')
+        idioma = request.POST.get('idioma', 'es')
 
         if not archivo_audio:
             return JsonResponse({'error': 'No se recibió audio'}, status=400)
@@ -139,7 +141,7 @@ def procesar_audio(request):
         finally:
             os.unlink(tmp_path)
 
-        texto_mejorado = mejorar_texto(texto_transcrito, tono)
+        texto_mejorado = mejorar_texto(texto_transcrito, tono, idioma)
         audio_b64 = texto_a_audio(texto_mejorado)
 
         return JsonResponse({
@@ -155,7 +157,7 @@ def procesar_audio(request):
 # =========================
 # ✍️ MEJORAR TEXTO (GPT)
 # =========================
-def mejorar_texto(texto, tono='profesional'):
+def mejorar_texto(texto, tono='profesional', idioma='es'):
 
     prompts = {
         'profesional': 'formal y profesional',
@@ -164,14 +166,20 @@ def mejorar_texto(texto, tono='profesional'):
         'empático': 'empático y cercano',
     }
 
+    idiomas = {
+        'es': 'Responde siempre en español, sin importar el idioma del texto original.',
+        'en': 'Always respond in English, no matter what language the original text is in.',
+    }
+
     descripcion = prompts.get(tono, prompts['profesional'])
+    instruccion_idioma = idiomas.get(idioma, idiomas['es'])
 
     respuesta = openai_client.chat.completions.create(
         model='gpt-4o-mini',
         messages=[
             {
                 'role': 'system',
-                'content': f'Eres un experto en comunicación empresarial. Mejora el texto para que sea {descripcion}.'
+                'content': f'Eres un experto en comunicación empresarial. Mejora el texto para que sea {descripcion}. {instruccion_idioma}'
             },
             {
                 'role': 'user',
@@ -195,7 +203,17 @@ def listar_voces(request):
         else:
             voces_raw = resultado  # a veces es directo una lista
 
-        voces = [{"voice_id": v.voice_id, "name": v.name} for v in voces_raw]
+        voces = [
+            {
+                "voice_id": v.voice_id,
+                "name": v.name,
+                "category": getattr(v, 'category', None),
+            }
+            for v in voces_raw
+        ]
+        # Las voces creadas por el usuario ('cloned') primero; las
+        # prediseñadas de ElevenLabs (no se pueden borrar) después.
+        voces.sort(key=lambda v: 0 if v['category'] == 'cloned' else 1)
         print("VOCES ENCONTRADAS:", len(voces))
         return JsonResponse({"voces": voces})
     except Exception as e:
