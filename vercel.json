@@ -4,7 +4,7 @@
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "includeFiles": ["voiceapp/voiceapp/**", "voiceapp/templates/**"]
+        "includeFiles": ["voiceapp/voiceapp/**", "voiceapp/templates/**", "voiceapp/static/**"]
       }
     }
   ],

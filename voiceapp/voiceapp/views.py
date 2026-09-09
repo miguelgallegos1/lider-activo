@@ -1,9 +1,26 @@
+"""
+Vistas de Líder Activo.
+
+Este módulo concentra toda la lógica de la aplicación (no hay una
+carpeta de "apps" separada porque el proyecto no usa modelos ni base
+de datos propia). Se divide en dos tipos de funciones:
+
+- Vistas de pantalla (index, onboarding, sin_autorizar): solo
+  renderizan una plantilla HTML, sin lógica adicional.
+- Endpoints de API (procesar_texto, procesar_audio, entrenar_voz,
+  listar_voces, eliminar_voz): reciben peticiones AJAX del
+  JavaScript de las plantillas y devuelven JSON. Hablan con dos
+  servicios externos:
+    * OpenAI   -> mejora la redacción del mensaje (GPT) y transcribe
+                  audio a texto (Whisper).
+    * ElevenLabs -> convierte texto a voz y gestiona las voces
+                    clonadas del usuario.
+"""
+
 import os
 import json
 import tempfile
-import requests
 import base64
-from io import BytesIO
 
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -11,29 +28,56 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
 from openai import OpenAI
-from elevenlabs import ElevenLabs
 from elevenlabs.client import ElevenLabs
 
-# ✅ CLIENTES BIEN SEPARADOS
+# Los clientes se crean una sola vez al iniciar el proceso (no en
+# cada request) para reutilizar la conexión HTTP con cada servicio.
 openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
 eleven_client = ElevenLabs(api_key=settings.ELEVENLABS_API_KEY)
 
+
+# =============================================================
+# Pantallas
+# =============================================================
+
 def index(request):
+    """Pantalla "Mensajes" (/mensajes/): escribir/grabar un mensaje y transformarlo."""
     return render(request, 'index.html')
 
+
 def onboarding(request):
+    """Pantalla "Entrenar mi voz" (/entrenar-voz/): grabar/subir la muestra y clonar la voz."""
     return render(request, 'onboarding.html')
 
+
 def sin_autorizar(request):
+    """Pantalla a la que se llega si el usuario no acepta el aviso de datos personales."""
     return render(request, 'sin_autorizar.html')
 
-#======================
-# 🎙️ ENTRENAR VOZ
-#======================
+
+# =============================================================
+# 🎙️ Entrenar voz (clonación con ElevenLabs)
+# =============================================================
 
 @csrf_exempt
 def entrenar_voz(request):
+    """
+    Endpoint POST /clonar-voz/.
 
+    Recibe una o más muestras de audio (grabadas o subidas por el
+    usuario en la pantalla de onboarding) y crea una voz clonada en
+    la cuenta de ElevenLabs mediante Instant Voice Cloning (IVC).
+
+    Parámetros esperados en el POST (multipart/form-data):
+        samples (archivo, uno o más): la muestra de voz.
+        voice_name (str): nombre con el que se guardará la voz.
+
+    Responde con JSON:
+        {"ok": true, "voice_id": "..."} si se creó correctamente.
+        {"ok": false, "limite": true, "mensaje": "..."} si la cuenta
+            de ElevenLabs ya alcanzó su límite de voces.
+        {"error": "..."} (HTTP 400/500) ante cualquier otro problema.
+    """
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
@@ -43,16 +87,19 @@ def entrenar_voz(request):
         if not archivos:
             return JsonResponse({'error': 'Sin muestras de voz'}, status=400)
 
-        files_bytes = []
-        for archivo in archivos:
-            files_bytes.append(archivo.read())
+        # El SDK de ElevenLabs acepta los archivos como bytes crudos.
+        files_bytes = [archivo.read() for archivo in archivos]
 
         voice_name = request.POST.get('voice_name', 'MiVoz').strip() or 'MiVoz'
 
         voice = eleven_client.voices.ivc.create(
             name=voice_name,
             files=files_bytes,
-            labels={},  # el SDK envía un valor inválido si se omite este parámetro
+            # Si se omite "labels", el SDK envía un valor que la API
+            # de ElevenLabs rechaza con el error 400 "Labels must be
+            # serialized dictionary object." Pasar un diccionario
+            # vacío evita ese bug.
+            labels={},
         )
 
         return JsonResponse({
@@ -66,7 +113,9 @@ def entrenar_voz(request):
         print("🔥 ERROR COMPLETO ELEVENLABS:")
         print(traceback.format_exc())
 
-        # Detectar límite de voces de ElevenLabs
+        # ElevenLabs limita cuántas voces puede tener una cuenta; se
+        # detecta ese caso por el texto del error para mostrar un
+        # mensaje específico en vez de uno genérico.
         if any(x in err for x in ['voice_limit', 'maximum', 'limit', 'quota', 'exceeded']):
             return JsonResponse({
                 "ok": False,
@@ -74,16 +123,34 @@ def entrenar_voz(request):
                 "mensaje": "Has alcanzado el límite de voces en ElevenLabs. Ve a 'Mis voces' y elimina una para poder crear una nueva."
             }, status=200)
 
+        # El detalle técnico ya quedó impreso arriba (para los logs
+        # del servidor); al navegador solo se le devuelve un mensaje
+        # corto y claro.
         return JsonResponse({
             'error': 'No se pudo clonar la voz. Verifica tu conexión e intenta de nuevo en unos segundos.'
         }, status=500)
 
-# =========================
-# 📝 PROCESAR TEXTO
-# =========================
+
+# =============================================================
+# 📝 Procesar mensaje de texto
+# =============================================================
+
 @csrf_exempt
 def procesar_texto(request):
+    """
+    Endpoint POST /procesar-texto/.
 
+    Recibe el mensaje escrito por el usuario, lo mejora con GPT y lo
+    convierte en audio con ElevenLabs (con la voz clonada indicada,
+    o la voz por defecto si no se eligió ninguna).
+
+    Body esperado (JSON):
+        {"texto": "...", "tono": "profesional", "idioma": "es",
+         "voice_id": "..." | null}
+
+    Responde con JSON:
+        {"texto_original", "texto_mejorado", "audio_base64"}
+    """
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
@@ -93,14 +160,13 @@ def procesar_texto(request):
         texto_original = data.get('texto', '').strip()
         tono = data.get('tono', 'profesional')
         idioma = data.get('idioma', 'es')
-        voice_id = data.get('voice_id')   # 🔥 CLAVE
+        voice_id = data.get('voice_id')  # None => usa la voz por defecto de la cuenta
 
         if not texto_original:
             return JsonResponse({'error': 'El texto no puede estar vacío'}, status=400)
 
         texto_mejorado = mejorar_texto(texto_original, tono, idioma)
-
-        audio_b64 = texto_a_audio(texto_mejorado, voice_id)  # 🔥 AQUÍ SE USA VOZ CLONADA
+        audio_b64 = texto_a_audio(texto_mejorado, voice_id)
 
         return JsonResponse({
             'texto_original': texto_original,
@@ -113,12 +179,27 @@ def procesar_texto(request):
         print(traceback.format_exc())
         return JsonResponse({'error': 'No se pudo procesar el mensaje. Intenta de nuevo en unos segundos.'}, status=500)
 
-# =========================
-# 🎧 PROCESAR AUDIO
-# =========================
+
+# =============================================================
+# 🎧 Procesar mensaje de audio
+# =============================================================
+
 @csrf_exempt
 def procesar_audio(request):
+    """
+    Endpoint POST /procesar-audio/.
 
+    Recibe un mensaje grabado por el usuario (audio/webm), lo
+    transcribe a texto con Whisper (OpenAI), mejora ese texto con GPT
+    y genera el audio final con ElevenLabs.
+
+    Body esperado (multipart/form-data):
+        audio (archivo): la grabación del usuario.
+        tono, idioma (str): igual que en procesar_texto.
+
+    Responde con JSON:
+        {"texto_original" (transcripción), "texto_mejorado", "audio_base64"}
+    """
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
@@ -130,6 +211,9 @@ def procesar_audio(request):
         if not archivo_audio:
             return JsonResponse({'error': 'No se recibió audio'}, status=400)
 
+        # La API de transcripción de OpenAI necesita un archivo real
+        # en disco (no acepta bytes en memoria directamente), así que
+        # el audio recibido se escribe primero a un archivo temporal.
         with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as tmp:
             for chunk in archivo_audio.chunks():
                 tmp.write(chunk)
@@ -144,6 +228,9 @@ def procesar_audio(request):
                 )
             texto_transcrito = transcripcion.text
         finally:
+            # Se borra el archivo temporal siempre, incluso si la
+            # transcripción falla, para no dejar audios acumulados
+            # en el disco del servidor.
             os.unlink(tmp_path)
 
         texto_mejorado = mejorar_texto(texto_transcrito, tono, idioma)
@@ -161,11 +248,19 @@ def procesar_audio(request):
         return JsonResponse({'error': 'No se pudo procesar el audio. Intenta de nuevo en unos segundos.'}, status=500)
 
 
-# =========================
-# ✍️ MEJORAR TEXTO (GPT)
-# =========================
-def mejorar_texto(texto, tono='profesional', idioma='es'):
+# =============================================================
+# ✍️ Mejorar texto con GPT (función interna, sin endpoint propio)
+# =============================================================
 
+def mejorar_texto(texto, tono='profesional', idioma='es'):
+    """
+    Reescribe `texto` con GPT-4o-mini según el `tono` elegido y en el
+    `idioma` solicitado (puede ser distinto al idioma original del
+    texto: por ejemplo, escribir en español y pedir el resultado en
+    inglés).
+
+    Usada internamente por procesar_texto y procesar_audio.
+    """
     prompts = {
         'profesional': 'formal y profesional',
         'motivador': 'motivador y energizante',
@@ -199,23 +294,43 @@ def mejorar_texto(texto, tono='profesional', idioma='es'):
 
     return respuesta.choices[0].message.content.strip()
 
+
+# =============================================================
+# 🗂️ Listar voces
+# =============================================================
+
 def listar_voces(request):
+    """
+    Endpoint GET /listar-voces/.
+
+    Devuelve todas las voces disponibles en la cuenta de ElevenLabs:
+    tanto las prediseñadas por ElevenLabs ("premade"/"professional",
+    que no se pueden eliminar) como las que el propio usuario clonó
+    ("cloned"). Para cada voz se limpia el nombre y se traduce el
+    género, y la lista queda ordenada con las voces clonadas por el
+    usuario primero.
+
+    Responde con JSON:
+        {"voces": [{"voice_id", "name", "category", "gender"}, ...]}
+    """
     try:
         resultado = eleven_client.voices.get_all()
-        print("TIPO:", type(resultado))
-        print("DIR:", dir(resultado))
-        # Intentar ambas estructuras posibles
+        # Distintas versiones del SDK devuelven la lista de voces de
+        # forma distinta (a veces envuelta en un objeto con atributo
+        # .voices, a veces la lista directa), por eso se contemplan
+        # ambos casos.
         if hasattr(resultado, 'voices'):
             voces_raw = resultado.voices
         else:
-            voces_raw = resultado  # a veces es directo una lista
+            voces_raw = resultado
 
         generos = {'male': 'Masculino', 'female': 'Femenino'}
 
         def nombre_limpio(nombre):
             # ElevenLabs nombra sus voces prediseñadas como
             # "Roger - Laid-Back, Casual, Resonant"; nos quedamos
-            # solo con el nombre propio.
+            # solo con el nombre propio para que se vea limpio en la
+            # interfaz.
             return nombre.split(' - ')[0].strip()
 
         voces = []
@@ -227,21 +342,31 @@ def listar_voces(request):
                 "category": getattr(v, 'category', None),
                 "gender": generos.get(labels.get('gender')),
             })
+
         # Las voces creadas por el usuario ('cloned') primero; las
         # prediseñadas de ElevenLabs (no se pueden borrar) después.
         voces.sort(key=lambda v: 0 if v['category'] == 'cloned' else 1)
-        print("VOCES ENCONTRADAS:", len(voces))
+
         return JsonResponse({"voces": voces})
     except Exception as e:
         import traceback
         print(traceback.format_exc())
         return JsonResponse({"voces": [], "error": str(e)})
-    
-# =========================
-# 🔊 TEXTO A AUDIO
-# =========================
-def texto_a_audio(texto, voice_id=None):
 
+
+# =============================================================
+# 🔊 Texto a audio (función interna, sin endpoint propio)
+# =============================================================
+
+def texto_a_audio(texto, voice_id=None):
+    """
+    Convierte `texto` en audio (MP3) usando ElevenLabs y lo devuelve
+    codificado en base64, listo para incrustar en el JSON de
+    respuesta y reproducirse directamente en el <audio> del navegador.
+
+    Si no se indica `voice_id`, se usa la voz por defecto configurada
+    en ELEVENLABS_VOICE_ID.
+    """
     audio_stream = eleven_client.text_to_speech.convert(
         voice_id=voice_id or settings.ELEVENLABS_VOICE_ID,
         text=texto,
@@ -252,11 +377,25 @@ def texto_a_audio(texto, voice_id=None):
 
     return base64.b64encode(audio_bytes).decode("utf-8")
 
-# =========================
-# 🔊 ELIMINAR VOCES
-# =========================
+
+# =============================================================
+# 🗑️ Eliminar voz
+# =============================================================
+
 @csrf_exempt
 def eliminar_voz(request):
+    """
+    Endpoint POST /eliminar-voz/.
+
+    Elimina una voz clonada de la cuenta de ElevenLabs. Las voces
+    prediseñadas ("premade"/"professional") no se pueden eliminar y
+    la interfaz ya evita mostrar el botón para ellas, pero si de
+    todas formas se recibiera un voice_id no eliminable, la API de
+    ElevenLabs lo rechazaría y ese error se refleja igual como un
+    JSON de error.
+
+    Body esperado (JSON): {"voice_id": "..."}
+    """
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
     try:

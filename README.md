@@ -1,23 +1,71 @@
 # Líder Activo
 
-Aplicación Django que ayuda a líderes de equipo a comunicar mejor sus mensajes: escribe o graba un mensaje, la IA lo redacta de forma profesional (OpenAI) y lo convierte en audio (ElevenLabs), incluso con una voz clonada propia.
+Aplicación web (Django) que ayuda a un líder de equipo a comunicar mejor sus mensajes: escribe o graba un mensaje, la IA lo redacta de forma profesional (OpenAI) y lo convierte en audio (ElevenLabs), incluso con una voz clonada del propio usuario.
+
+Proyecto de graduación — Ingeniería en Software.
 
 ## Funcionalidad
 
-- **Onboarding de voz** (`/`): graba o sube una muestra de audio (30s–5min) y clona tu voz con ElevenLabs, con aviso de tratamiento de datos biométricos (LOPDP Ecuador).
-- **App principal** (`/app/`):
-  - Escribir un mensaje de texto y mejorarlo con IA según un tono (profesional, motivador, directo, empático).
-  - Grabar un mensaje de voz, transcribirlo (Whisper) y mejorarlo.
-  - Generar el audio final con la voz clonada activa o la voz por defecto.
-  - Gestionar ("Mis voces"): ver, activar y eliminar voces clonadas.
+La app tiene 3 pantallas, cada una con su propia URL:
+
+| Pantalla | URL | Qué hace |
+|---|---|---|
+| Entrenar mi voz | `/entrenar-voz/` | Punto de entrada de la app. Pide consentimiento para tratar un dato biométrico (LOPDP Ecuador) y, si se acepta, permite grabar o subir una muestra de audio (30s–5min) para clonar la voz del usuario con ElevenLabs. |
+| Mensajes | `/mensajes/` | Pantalla principal: escribir o grabar un mensaje, elegir tono/idioma/voz, mejorarlo con IA (GPT) y generar el audio final. También lista y gestiona ("Mis voces") las voces clonadas. |
+| Sin autorización | `/sin-autorizar/` | A donde se redirige si el usuario no acepta el aviso de datos personales en "Entrenar mi voz". |
+
+`/` no tiene contenido propio: solo redirige a `/entrenar-voz/`.
 
 ## Stack
 
-- Backend: Django, servido con Gunicorn + WhiteNoise.
-- IA de texto: OpenAI (`gpt-4o-mini`, `whisper-1`).
-- Voz: ElevenLabs (clonación de voz + text-to-speech).
-- Frontend: HTML + CSS + JS vanilla (sin build step).
-- Deploy: Railway (`railway.json`, servidor Gunicorn persistente) o Vercel (`vercel.json`, funciones serverless vía `api/index.py`).
+- **Backend:** Django (sin modelos propios: no hay base de datos de negocio, todo el estado vive en el navegador). Servido con Gunicorn + WhiteNoise.
+- **IA de texto:** OpenAI (`gpt-4o-mini` para mejorar redacción, `whisper-1` para transcribir audio).
+- **Voz:** ElevenLabs (clonación de voz + texto a voz).
+- **Frontend:** HTML + CSS + JavaScript vanilla, sin framework ni build step (no hay bundler, npm ni compilación: los archivos `.css`/`.js` se sirven tal cual).
+- **Deploy:** Railway (`railway.json`, servidor Gunicorn persistente) o Vercel (`vercel.json`, funciones serverless vía `api/index.py`).
+
+## Estructura del proyecto
+
+```
+lider-activo/
+├── api/
+│   └── index.py            # Adaptador WSGI para desplegar como función serverless en Vercel
+├── requirements.txt         # Dependencias Python (copia para que Vercel las encuentre en la raíz)
+├── vercel.json               # Configuración de deploy en Vercel
+│
+└── voiceapp/                 # Proyecto Django (contiene manage.py)
+    ├── manage.py
+    ├── requirements.txt       # Dependencias Python (para desarrollo local y Railway)
+    ├── railway.json           # Configuración de deploy en Railway
+    ├── .env.example           # Plantilla de variables de entorno (sin secretos)
+    │
+    ├── voiceapp/              # Paquete de configuración de Django
+    │   ├── settings.py        # Configuración del proyecto (comentada)
+    │   ├── urls.py             # Enrutador: pantallas + endpoints de la API interna
+    │   ├── views.py            # Toda la lógica de la app: pantallas y llamadas a OpenAI/ElevenLabs
+    │   ├── wsgi.py / asgi.py   # Puntos de entrada estándar de Django
+    │   └── __init__.py
+    │
+    ├── templates/              # Un archivo HTML por pantalla (solo estructura, sin CSS/JS inline)
+    │   ├── index.html          # Pantalla "Mensajes"
+    │   ├── onboarding.html      # Pantalla "Entrenar mi voz"
+    │   └── sin_autorizar.html  # Pantalla "Sin autorización"
+    │
+    └── static/                 # CSS y JavaScript, un archivo por pantalla (misma separación que templates/)
+        ├── css/
+        │   ├── mensajes.css
+        │   ├── entrenar-voz.css
+        │   └── sin-autorizar.css
+        └── js/
+            ├── mensajes.js
+            └── entrenar-voz.js
+```
+
+**Por qué el CSS/HTML/servidor están separados:** cada plantilla en `templates/` solo tiene marcado HTML; su estilo vive en el `.css` correspondiente dentro de `static/css/` y su lógica de interfaz en el `.js` correspondiente dentro de `static/js/`, enlazados con `<link rel="stylesheet">` y `<script src="...">` (usando el sistema de archivos estáticos de Django, `{% static %}`). Toda la lógica de servidor (llamadas a OpenAI/ElevenLabs, endpoints JSON) vive exclusivamente en `voiceapp/voiceapp/views.py`; ninguna plantilla ni archivo estático contiene lógica de negocio.
+
+**Por qué hay dos `requirements.txt`:** Vercel busca ese archivo en la raíz del repositorio, mientras que el entorno local y Railway lo usan desde dentro de `voiceapp/`. Ambos deben mantenerse iguales.
+
+**Por qué no hay `models.py` ni migraciones propias:** la app no guarda datos de negocio (el estado de "voz activa" se guarda en el `localStorage` del navegador, no en el servidor). La base de datos SQLite que trae Django solo la usan internamente `django.contrib.admin`/`auth`/`sessions`, que quedaron instalados por ser parte del scaffold estándar del framework.
 
 ## Configuración local
 
@@ -42,14 +90,15 @@ Aplicación Django que ayuda a líderes de equipo a comunicar mejor sus mensajes
    python manage.py migrate
    python manage.py runserver
    ```
+4. Abrir http://127.0.0.1:8000/ (redirige a la pantalla de entrenamiento de voz).
 
 ## Deploy (Railway)
 
-En producción define en las variables de entorno de Railway: `SECRET_KEY` (una clave nueva y secreta), `DEBUG=False`, `ALLOWED_HOSTS` con el dominio público que asigne Railway, y las claves de `OPENAI_API_KEY` / `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID`. `railway.json` corre las migraciones, recolecta los estáticos (servidos con WhiteNoise) y levanta Gunicorn.
+En producción define en las variables de entorno de Railway: `SECRET_KEY` (una clave nueva y secreta), `DEBUG=False`, `ALLOWED_HOSTS` con el dominio público que asigne Railway, y las claves de `OPENAI_API_KEY` / `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID`. `railway.json` corre las migraciones y levanta Gunicorn; los archivos estáticos los sirve WhiteNoise directamente desde `voiceapp/static/`.
 
 ## Deploy (Vercel)
 
-El proyecto no usa base de datos para nada de su funcionalidad (no hay `models.py`; el estado de "voz activa" vive en `localStorage` del navegador), así que el filesystem efímero de las funciones serverless de Vercel no afecta el uso real de la app.
+El proyecto no usa base de datos para nada de su funcionalidad, así que el filesystem efímero de las funciones serverless de Vercel no afecta el uso real de la app.
 
 1. En [vercel.com](https://vercel.com), "Add New Project" → importar `miguelgallegos1/lider-activo` desde GitHub. Vercel detecta `vercel.json` automáticamente (usa `@vercel/python` sobre `api/index.py`, que expone la app Django como WSGI).
 2. En las variables de entorno del proyecto en Vercel, define:

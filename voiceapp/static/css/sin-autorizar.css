@@ -1,0 +1,41 @@
+/*
+ * Estilos de la pantalla "Sin autorización" (/sin-autorizar/,
+ * plantilla sin_autorizar.html). Es la pantalla a la que se llega
+ * si el usuario no acepta el aviso de datos personales en
+ * "Entrenar mi voz".
+ */
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --brand:#038554;--brand-dark:#005227;--brand-light:#E5FBF5;
+  --gray50:#F5F8F7;--gray100:#ECF1EF;--gray200:#DCE4E1;
+  --gray400:#93A19C;--gray700:#383E3B;--gray800:#1E2422;--gray900:#101413;
+  --radius:12px;
+}
+body{font-family:'Inter',sans-serif;background:var(--gray50);min-height:100vh;color:var(--gray800);display:flex;flex-direction:column}
+svg{display:block}
+
+nav{height:60px;background:white;display:flex;align-items:center;padding:0 2rem;border-bottom:1px solid var(--gray200)}
+.nav-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem;color:var(--gray900)}
+.nav-icon{width:32px;height:32px;background:var(--brand);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.nav-icon svg{width:18px;height:18px;color:white}
+
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem 1.5rem}
+.card{background:white;border-radius:var(--radius);border:1px solid var(--gray200);box-shadow:0 1px 3px rgba(0,0,0,.08);padding:2.25rem;max-width:440px;width:100%;text-align:center}
+.card-icon{width:56px;height:56px;border-radius:50%;background:var(--gray100);color:var(--gray700);display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem}
+.card-icon svg{width:26px;height:26px}
+h1{font-size:1.2rem;font-weight:700;color:var(--gray900);margin-bottom:.6rem}
+p{font-size:.875rem;color:var(--gray800);line-height:1.6;margin-bottom:1.5rem}
+.actions{display:flex;flex-direction:column;gap:.6rem}
+.btn-primary{padding:12px;font-size:.9rem;font-weight:600;font-family:inherit;border:none;border-radius:8px;background:var(--brand);color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;transition:background .2s}
+.btn-primary:hover{background:var(--brand-dark)}
+.btn-ghost{padding:12px;font-size:.875rem;font-weight:500;font-family:inherit;border:1px solid var(--gray200);border-radius:8px;background:transparent;color:var(--gray700);cursor:pointer;text-decoration:none;display:block;transition:background .2s}
+.btn-ghost:hover{background:var(--gray50)}
+
+.app-footer{text-align:center;padding:1.5rem 1rem;font-size:.72rem;color:var(--gray400);border-top:1px solid var(--gray200)}
+
+@media(max-width:480px){
+  main{padding:1.5rem 1rem}
+  .card{padding:1.5rem}
+}
+.app-footer strong{color:var(--gray700)}
