@@ -100,6 +100,22 @@
 
     <!-- PANEL GRABAR -->
     <div class="panel active" id="panel-rec">
+
+      <!-- GUION SUGERIDO -->
+      <div class="script-card">
+        <button type="button" class="script-toggle" id="scriptToggle" onclick="toggleGuion()">
+          <span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Guion sugerido para una clonación más precisa
+          </span>
+          <svg class="script-chevron" id="scriptChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="script-body" id="scriptBody">
+          <p class="script-hint">Leer este guion en voz alta ayuda a que la clonación capte mejor tu voz (cubre sonidos, ritmo y entonación distintos). Es solo una sugerencia: puedes ignorarlo y grabar lo que prefieras.</p>
+          <div class="script-box" id="scriptBox"></div>
+        </div>
+      </div>
+
       <div class="rec-area" id="recArea">
         <button class="mic-btn" id="micBtn" onclick="toggleRec()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>

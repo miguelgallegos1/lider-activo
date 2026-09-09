@@ -9,6 +9,47 @@ let mediaRecorder=null,chunks=[],audioBlob=null,timerInt=null,secs=0;
 let consentimientoAceptado=false;  // se pone en true solo cuando el usuario acepta el modal de consentimiento
 let toastIntervalId=null;
 
+/*
+ * Guion sugerido para leer mientras se graba la muestra de voz.
+ * ElevenLabs no publica un texto fijo para esto (su documentación de
+ * Instant Voice Cloning pide sobre todo audio limpio, sin ruido y con
+ * un tono/ritmo consistente, sin música de fondo); este guion aplica
+ * esa idea con frases variadas -afirmaciones, preguntas, exclamaciones,
+ * números, palabras con "rr"/"ll"/"ñ"- para que la muestra cubra una
+ * gama amplia de sonidos, en vez de repetir siempre el mismo patrón.
+ * Cada párrafo está pensado para leerse en unos 30s a ritmo normal; si
+ * la grabación sigue después del último, se vuelve a resaltar desde el
+ * primero (hasta el máximo de 5 minutos que ya valida el resto del flujo).
+ */
+const GUION = [
+  'Buenos días a todo el equipo. Antes de empezar, quiero agradecerles el esfuerzo que ponen cada día en su trabajo. Esta semana cerramos con doscientos cuarenta y siete pedidos entregados a tiempo, y eso es un resultado excelente para todos nosotros. Sigamos así, cuidando cada detalle y apoyándonos entre todos.',
+  '¿Cómo van con las metas de este mes? Me encantaría escuchar sus ideas en la próxima reunión, porque entre todos siempre encontramos mejores soluciones. ¡Vamos muy bien encaminados y quiero que lo celebremos juntos! No se olviden de revisar el correo antes del viernes, por favor, es importante.',
+  'El carro llegó temprano y el guardia abrió el portón sin ningún problema. La niña pequeña corrió alrededor del jardín mientras el perro ladraba a lo lejos. Necesitamos organizar bien la próxima reunión y explicar con claridad cada tarea pendiente, para que nadie se quede con dudas.',
+  'Sé que ha sido una semana difícil para algunos de ustedes, y quiero que sepan que pueden contar conmigo. Tómense el tiempo que necesiten, hablemos con calma y busquemos juntos la mejor solución. Confío plenamente en cada uno de ustedes y en lo que somos capaces de lograr juntos.',
+  '¡Vamos con todo esta última semana del mes! Si cumplimos el objetivo, superaremos los quinientos mil dólares en ventas, y eso sería un logro histórico para todo el equipo. Ánimo, ustedes pueden lograrlo, yo confío plenamente en cada uno de ustedes.',
+  'Quiero cerrar agradeciéndoles nuevamente por su compromiso. Sé que no siempre es fácil, pero el trabajo en equipo que hemos construido es algo de lo que debemos sentirnos orgullosos. Nos vemos el lunes con toda la energía para seguir creciendo juntos.',
+];
+
+/** Pinta los párrafos del guion sugerido dentro de #scriptBox. */
+function renderGuion(){
+  const box=document.getElementById('scriptBox');
+  box.innerHTML=GUION.map((p,i)=>`<p class="script-p" id="guion-p-${i}">${p}</p>`).join('');
+}
+renderGuion();
+
+/** Resalta el párrafo del guion que toca leer según los segundos grabados, ciclando si se supera el guion completo. */
+function resaltarGuion(segundosGrabados){
+  const idx=Math.floor(segundosGrabados/30)%GUION.length;
+  document.querySelectorAll('.script-p').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  const activo=document.getElementById('guion-p-'+idx);
+  if(activo) activo.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+/** Expande/colapsa la tarjeta del guion sugerido. */
+function toggleGuion(){
+  document.querySelector('.script-card').classList.toggle('collapsed');
+}
+
 /** Muestra una notificación abajo-centro con contador regresivo visible y botón para cerrarla antes. */
 function toast(msg,type='ok',dur=3500){
   const t=document.getElementById('toast');
@@ -118,11 +159,13 @@ async function toggleRec(){
     document.getElementById('progWrap').style.display='block';
     document.getElementById('micBtn').className='mic-btn recording';
     document.getElementById('recStatus').innerHTML='<strong>Grabando...</strong> Toca para detener';
+    resaltarGuion(0);
 
     timerInt=setInterval(()=>{
       secs++;
       document.getElementById('recTimer').textContent=secs+'s grabando...';
       document.getElementById('progFill').style.width=Math.min((secs/30)*100,100)+'%';
+      resaltarGuion(secs);
       if(secs>=300) mediaRecorder.stop();
     },1000);
 
@@ -285,6 +328,7 @@ function resetFlow(){
   document.getElementById('progFill').style.width='0%';
   document.getElementById('progWrap').style.display='none';
   document.getElementById('btnCloneRec').disabled=true;
+  document.querySelectorAll('.script-p').forEach(el=>el.classList.remove('active'));
   switchTab('rec');
   toast('Listo para grabar una nueva muestra','ok');
 }
