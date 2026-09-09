@@ -1,6 +1,12 @@
 {
   "builds": [
-    { "src": "api/index.py", "use": "@vercel/python" }
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": ["voiceapp/voiceapp/**", "voiceapp/templates/**"]
+      }
+    }
   ],
   "routes": [
     { "src": "/(.*)", "dest": "/api/index.py" }
