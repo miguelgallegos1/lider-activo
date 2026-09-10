@@ -21,9 +21,7 @@ import os
 import json
 import tempfile
 import base64
-from urllib.parse import urlparse
 
-import requests
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -587,73 +585,3 @@ def eliminar_voz(request):
         import traceback
         print(traceback.format_exc())
         return JsonResponse({'error': 'No se pudo eliminar la voz. Intenta de nuevo en unos segundos.'}, status=500)
-
-
-# =============================================================
-# 💬 Enviar mensaje a Microsoft Teams
-# =============================================================
-
-# Dominios donde Microsoft aloja los webhooks entrantes de Teams (el
-# método actual es un flujo de Workflows/Power Automate; el de
-# "Office 365 Connectors" -webhook.office.com- está en retiro pero se
-# deja como respaldo). Sirve para no convertir este endpoint en un
-# proxy HTTP genérico -un riesgo de SSRF-: solo reenvía el mensaje si
-# la URL que llega del navegador apunta a un dominio real de Microsoft.
-DOMINIOS_WEBHOOK_TEAMS = (
-    'logic.azure.com',
-    'powerautomate.com',
-    'powerplatform.com',
-    'flow.microsoft.com',
-    'webhook.office.com',
-    'webhook.office365.com',
-)
-
-
-@csrf_exempt
-def enviar_teams(request):
-    """
-    Endpoint POST /enviar-teams/.
-
-    Reenvía un mensaje ya mejorado a un canal de Microsoft Teams, a
-    través del webhook entrante que el propio usuario configuró en su
-    canal (Teams: canal -> "..." -> Workflows -> plantilla "Send
-    webhook alerts to a channel"). El navegador no puede llamar
-    directamente a ese webhook -Microsoft no responde con cabeceras
-    CORS para peticiones desde otro origen-, así que el servidor actúa
-    de intermediario.
-
-    Body esperado (JSON): {"webhook_url": "...", "texto": "..."}
-    """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-        webhook_url = (data.get('webhook_url') or '').strip()
-        texto = (data.get('texto') or '').strip()
-
-        if not texto:
-            return JsonResponse({'error': 'El mensaje no puede estar vacío'}, status=400)
-
-        partes = urlparse(webhook_url)
-        host = (partes.hostname or '').lower()
-        es_dominio_valido = partes.scheme == 'https' and any(
-            host == dominio or host.endswith('.' + dominio) for dominio in DOMINIOS_WEBHOOK_TEAMS
-        )
-        if not es_dominio_valido:
-            return JsonResponse({'error': 'Esa URL no parece un webhook válido de Microsoft Teams.'}, status=400)
-
-        respuesta = requests.post(webhook_url, json={'text': texto}, timeout=10)
-        if respuesta.status_code >= 300:
-            return JsonResponse({
-                'error': f'Teams respondió con un error ({respuesta.status_code}). Revisa que el webhook siga activo.'
-            }, status=502)
-
-        return JsonResponse({'ok': True})
-
-    except requests.RequestException:
-        return JsonResponse({'error': 'No se pudo contactar a Microsoft Teams. Intenta de nuevo.'}, status=502)
-    except Exception:
-        import traceback
-        print(traceback.format_exc())
-        return JsonResponse({'error': 'No se pudo enviar el mensaje a Teams.'}, status=500)

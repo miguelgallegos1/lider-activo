@@ -154,7 +154,7 @@ function cambiarTab(tab, btn) {
   btn.classList.add('active');
   document.getElementById('resultado').classList.remove('visible');
 
-  if (tab === 'voces') { cargarVoces(); cargarWebhookTeamsGuardado(); }
+  if (tab === 'voces') cargarVoces();
   if (tab === 'historial') cargarHistorial();
 }
 
@@ -577,72 +577,17 @@ function limpiarHistorial() {
   mostrarToast('Historial borrado');
 }
 
-// =====================
-// INTEGRACIÓN CON MICROSOFT TEAMS
-// =====================
-// La URL del webhook se guarda en este navegador (localStorage), igual
-// que el resto de preferencias de la app (voz activa, etc.). El envío
-// en sí no se hace directo desde el navegador porque el webhook de
-// Teams no responde con cabeceras CORS para peticiones de otro origen;
-// pasa por /enviar-teams/, que hace esa llamada del lado del servidor.
-const TEAMS_WEBHOOK_KEY = 'teams_webhook_url';
-
-/** Precarga el campo de configuración con el webhook ya guardado (si hay uno) al entrar a "Mis voces". */
-function cargarWebhookTeamsGuardado() {
-  const input = document.getElementById('teamsWebhookInput');
-  if (input) input.value = localStorage.getItem(TEAMS_WEBHOOK_KEY) || '';
-}
-
-/** Guarda la URL del webhook de Teams; si se deja vacía, borra la configuración guardada. */
-function guardarWebhookTeams() {
-  const input = document.getElementById('teamsWebhookInput');
-  const estado = document.getElementById('teamsStatus');
-  const url = input.value.trim();
-
-  if (!url) {
-    localStorage.removeItem(TEAMS_WEBHOOK_KEY);
-    estado.textContent = '';
-    mostrarToast('Webhook de Teams borrado');
-    return;
-  }
-  try {
-    new URL(url);
-  } catch (e) {
-    mostrarToast('Esa URL no parece válida', 'error');
-    return;
-  }
-  localStorage.setItem(TEAMS_WEBHOOK_KEY, url);
-  estado.textContent = 'Webhook guardado. Ya puedes usar "Enviar a Teams" desde cualquier mensaje.';
-  mostrarToast('Webhook de Teams guardado');
-}
-
-/** Envía `texto` al canal de Teams configurado a través del backend. */
-async function enviarTextoATeams(texto) {
-  const webhookUrl = localStorage.getItem(TEAMS_WEBHOOK_KEY);
-  if (!webhookUrl) { mostrarToast('Primero configura el webhook de Teams en "Mis voces"', 'warn', 5000); return; }
-
-  try {
-    const res = await fetch('/enviar-teams/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ webhook_url: webhookUrl, texto }),
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    mostrarToast('Mensaje enviado a Teams');
-  } catch (e) {
-    mostrarToast(e.message || 'No se pudo enviar a Teams', 'error');
-  }
-}
-
-/** Botón "Enviar a Teams" de la sección de resultado: manda el mensaje ya mejorado. */
+/**
+ * Abre Microsoft Teams (app de escritorio si está instalada, si no la
+ * versión web) con un chat nuevo y el texto mejorado precargado en el
+ * cuadro de redacción, listo para elegir el chat/persona y enviarlo.
+ * Mismo patrón que WhatsApp-texto y Correo: sin backend, sin
+ * configuración previa (no hace falta webhook ni saber a quién se lo
+ * vas a mandar de antemano). El envío final lo hace el usuario dentro
+ * de Teams: el link solo precarga el mensaje, no lo manda solo.
+ */
 function enviarATeams() {
   const texto = document.getElementById('texto-mejorado').textContent;
   if (!texto || texto === '—') { mostrarToast('Genera un mensaje primero', 'error'); return; }
-  enviarTextoATeams(texto);
-}
-
-/** Botón "Enviar mensaje de prueba" de la configuración de Teams. */
-function probarWebhookTeams() {
-  enviarTextoATeams('Mensaje de prueba desde Líder Activo. Si ves esto en el canal, la integración con Teams está funcionando.');
+  window.open('https://teams.microsoft.com/l/chat/0/0?message=' + encodeURIComponent(texto), '_blank');
 }
