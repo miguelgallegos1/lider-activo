@@ -6,7 +6,14 @@
  * a otra URL.
  */
 
+/* Transición suave (crossfade nativo del navegador) al navegar entre
+   pantallas de la app; en navegadores que no la soportan, simplemente
+   no hace nada y la navegación se ve como siempre. */
+@view-transition{navigation:auto}
+
 *{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 :root{
   --brand:#038554;--brand-dark:#005227;--brand-light:#E5FBF5;
   --danger:#DC2626;--danger-light:#FEF2F2;
@@ -23,7 +30,7 @@ nav{height:60px;background:white;display:flex;align-items:center;padding:0 2rem;
 .nav-icon svg{width:18px;height:18px;color:white}
 
 main{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem 1.5rem}
-.card{background:white;border-radius:var(--radius);border:1px solid var(--gray200);box-shadow:0 1px 3px rgba(0,0,0,.08);padding:2.25rem;max-width:460px;width:100%;text-align:center}
+.card{background:white;border-radius:var(--radius);border:1px solid var(--gray200);box-shadow:0 1px 3px rgba(0,0,0,.08);padding:2.25rem;max-width:460px;width:100%;text-align:center;animation:fadeIn .3s ease}
 .card-icon{width:56px;height:56px;border-radius:50%;background:var(--gray100);color:var(--brand-dark);display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem}
 .card-icon.card-icon-danger{background:var(--danger-light);color:var(--danger)}
 .card-icon svg{width:26px;height:26px}
@@ -47,3 +54,7 @@ p{font-size:.875rem;color:var(--gray800);line-height:1.6;margin-bottom:1.5rem;te
   .actions-row{flex-direction:column}
 }
 .app-footer strong{color:var(--gray700)}
+
+@media (prefers-reduced-motion: reduce) {
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}

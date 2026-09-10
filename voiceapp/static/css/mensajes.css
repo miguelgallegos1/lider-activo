@@ -3,7 +3,14 @@
  * Aquí el usuario escribe o graba su mensaje y lo transforma con IA.
  */
 
+/* Transición suave (crossfade nativo del navegador) al navegar entre
+   pantallas de la app; en navegadores que no la soportan, simplemente
+   no hace nada y la navegación se ve como siempre. */
+@view-transition { navigation: auto; }
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 :root {
   --brand: #038554; --brand-light: #E5FBF5; --brand-dark: #005227; --brand-vivid: #03BB85;
   --success: var(--brand); --success-light: var(--brand-light);
@@ -108,7 +115,7 @@ textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3p
 .dd-chevron { width: 15px; height: 15px; color: var(--gray-600); flex-shrink: 0; transition: transform .15s; }
 .dd.open .dd-chevron { transform: rotate(180deg); }
 .dd-menu { position: absolute; top: calc(100% + 6px); left: 0; right: 0; min-width: 190px; background: white; border: 1px solid var(--gray-200); border-radius: 10px; box-shadow: 0 14px 32px rgba(0,0,0,.16); padding: 6px; z-index: 60; max-height: 260px; overflow-y: auto; display: none; }
-.dd.open .dd-menu { display: block; }
+.dd.open .dd-menu { display: block; animation: fadeIn .18s ease; }
 .dd-option { padding: .55rem .7rem; border-radius: 7px; font-size: .875rem; color: var(--gray-700); cursor: pointer; }
 .dd-option:hover { background: var(--gray-50); }
 .dd-option.selected { background: var(--brand-light); color: var(--brand); font-weight: 600; }
@@ -140,7 +147,7 @@ textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3p
 
 /* RESULT */
 .result-section { display: none; }
-.result-section.visible { display: block; }
+.result-section.visible { display: block; animation: fadeIn .3s ease; }
 .result-card { background: var(--success-light); border: 1px solid #BEE8DA; border-radius: var(--radius); padding: 1.5rem; }
 .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
 .result-title { font-size: .875rem; font-weight: 600; color: var(--success); display: flex; align-items: center; gap: 6px; }
@@ -166,7 +173,7 @@ audio { width: 100%; border-radius: 8px; margin-bottom: 1rem; }
 .toast-close:hover { color: white; }
 
 .tab-panel { display: none; }
-.tab-panel.active { display: block; }
+.tab-panel.active { display: block; animation: fadeIn .25s ease; }
 .char-count { font-size: .75rem; color: var(--gray-400); text-align: right; margin-top: 4px; }
 
 .voice-badge { display: inline-flex; align-items: center; gap: 4px; font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: var(--success-light); color: var(--success); margin-left: 4px; }
@@ -220,4 +227,8 @@ audio { width: 100%; border-radius: 8px; margin-bottom: 1rem; }
   .audio-controls .btn { width: 100%; justify-content: center; }
 
   .voice-row-actions { width: 100%; justify-content: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
