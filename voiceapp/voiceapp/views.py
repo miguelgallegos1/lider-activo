@@ -5,7 +5,7 @@ Este módulo concentra toda la lógica de la aplicación (no hay una
 carpeta de "apps" separada porque el proyecto no usa modelos ni base
 de datos propia). Se divide en dos tipos de funciones:
 
-- Vistas de pantalla (index, onboarding, sin_autorizar): solo
+- Vistas de pantalla (index, onboarding, autorizacion): solo
   renderizan una plantilla HTML, sin lógica adicional.
 - Endpoints de API (procesar_texto, procesar_audio, entrenar_voz,
   listar_voces, eliminar_voz): reciben peticiones AJAX del
@@ -51,9 +51,15 @@ def onboarding(request):
     return render(request, 'onboarding.html')
 
 
-def sin_autorizar(request):
-    """Pantalla a la que se llega si el usuario no acepta el aviso de datos personales."""
-    return render(request, 'sin_autorizar.html')
+def autorizacion(request):
+    """
+    Pantalla "/" (punto de entrada real de la app): muestra el aviso de
+    tratamiento de datos personales antes que cualquier otra cosa. Si
+    el usuario acepta pasa a "Entrenar mi voz"; si no acepta, se queda
+    en esta misma pantalla (la propia plantilla cambia de estado con
+    JS, sin navegar a otra URL).
+    """
+    return render(request, 'autorizacion.html')
 
 
 # =============================================================

@@ -1,7 +1,9 @@
 /*
  * Estilos de la pantalla "Entrenar mi voz" (/entrenar-voz/, plantilla
- * onboarding.html). Aquí el usuario graba o sube una muestra de voz
- * y la clona con ElevenLabs, previo consentimiento de datos.
+ * onboarding.html). Aquí el usuario graba o sube una muestra de voz y
+ * la clona con ElevenLabs. El aviso de tratamiento de datos se
+ * resuelve antes, en la pantalla de autorización ("/"), así que esta
+ * pantalla ya no tiene su propio modal de consentimiento.
  */
 
 *{margin:0;padding:0;box-sizing:border-box}
@@ -16,24 +18,14 @@
 body{font-family:'Inter',sans-serif;background:var(--gray50);min-height:100vh;color:var(--gray800)}
 svg{display:block}
 
-/* CONSENTIMIENTO — modal bloqueante, primero que nada */
-.consent-overlay{position:fixed;inset:0;background:rgba(16,20,19,.6);display:flex;align-items:center;justify-content:center;z-index:10000;padding:1rem}
-.consent-modal{background:white;border-radius:var(--radius);max-width:440px;width:100%;padding:1.75rem;box-shadow:0 24px 60px rgba(0,0,0,.3)}
-.consent-head{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px}
-.consent-head svg{flex-shrink:0;color:var(--brand-dark);margin-top:1px}
-.consent-title{font-size:.95rem;font-weight:700;color:var(--gray900)}
-.consent-body{font-size:.82rem;color:var(--gray800);line-height:1.65;margin-bottom:1.35rem}
-.consent-actions{display:flex;gap:10px}
-.consent-actions button{flex:1;margin-top:0}
-.btn-deny{background:var(--gray100);color:var(--gray800);border:none;padding:12px;border-radius:8px;font-size:.9rem;font-weight:600;font-family:inherit;cursor:pointer;transition:background .2s}
-.btn-deny:hover{background:var(--gray200)}
-
 /* NAV */
 nav{height:60px;background:white;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;border-bottom:1px solid var(--gray200)}
 .nav-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem;color:var(--gray900)}
 .nav-icon{width:32px;height:32px;background:var(--brand);border-radius:8px;display:flex;align-items:center;justify-content:center}
 .nav-icon svg{width:18px;height:18px;color:white}
 .nav-badge{background:var(--brand-light);color:var(--brand);font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.05em}
+.skip-btn{background:var(--gray100);border:none;padding:10px 16px;border-radius:8px;font-weight:600;font-family:inherit;cursor:pointer;font-size:.875rem;color:var(--gray800);transition:background .2s}
+.skip-btn:hover{background:var(--gray200)}
 
 /* HERO — plano, sin degradado ni animación; el impacto viene de la
    tipografía grande y la composición en dos columnas. */

@@ -103,7 +103,7 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'voiceapp.urls'
 
 # Motor de plantillas. DIRS apunta a voiceapp/templates/, donde viven
-# index.html, onboarding.html y sin_autorizar.html (las 3 pantallas
+# autorizacion.html, onboarding.html e index.html (las 3 pantallas
 # de la app).
 TEMPLATES = [
     {

@@ -13,18 +13,17 @@ Separa las URLs en dos grupos:
 
 from django.contrib import admin
 from django.urls import path
-from django.views.generic.base import RedirectView
 from . import views
 
 urlpatterns = [
-    # "/" no tiene contenido propio: solo redirige a la pantalla de
-    # entrenamiento de voz, que es el punto de entrada real de la app.
-    path('', RedirectView.as_view(pattern_name='entrenar-voz', permanent=False)),
-
     # --- Las 3 pantallas de la app (una plantilla HTML cada una) ---
-    path('entrenar-voz/', views.onboarding, name='entrenar-voz'),          # 1. grabar/subir la muestra de voz y clonarla
+    # "/" es el aviso de tratamiento de datos: el punto de entrada real
+    # de la app. Si se acepta, pasa a "entrenar-voz"; si no, se queda
+    # en la misma pantalla (la plantilla cambia de estado con JS, sin
+    # redirigir a otra URL).
+    path('', views.autorizacion, name='autorizacion'),
+    path('entrenar-voz/', views.onboarding, name='entrenar-voz'),          # 1. grabar/subir la muestra de voz y clonarla (o saltar sin entrenar)
     path('mensajes/', views.index, name='mensajes'),                       # 2. escribir/grabar y transformar el mensaje (pantalla principal)
-    path('sin-autorizar/', views.sin_autorizar, name='sin-autorizar'),     # 3. a donde se llega si no se acepta el aviso de datos personales
 
     # Panel de administración estándar de Django (no lo usa la app,
     # pero se deja disponible por si se necesita inspeccionar la base

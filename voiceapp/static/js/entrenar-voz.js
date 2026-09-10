@@ -1,12 +1,11 @@
 /*
  * Lógica de la pantalla "Entrenar mi voz" (/entrenar-voz/, plantilla
- * onboarding.html). Cubre el modal de consentimiento de datos
- * biométricos, la grabación/subida de la muestra de voz y el envío
- * a /clonar-voz/.
+ * onboarding.html). Cubre la grabación/subida de la muestra de voz y
+ * el envío a /clonar-voz/. El aviso de tratamiento de datos ya se
+ * resolvió antes, en la pantalla de autorización ("/").
  */
 
 let mediaRecorder=null,chunks=[],audioBlob=null,timerInt=null,secs=0;
-let consentimientoAceptado=false;  // se pone en true solo cuando el usuario acepta el modal de consentimiento
 let toastIntervalId=null;
 let recPreviewUrl=null,filePreviewUrl=null;  // object URLs de los reproductores de verificación; se revocan al reemplazarlos
 
@@ -72,26 +71,6 @@ function cerrarToast(){
   document.getElementById('toast').classList.remove('show');
 }
 
-/**
- * Maneja la respuesta al modal de consentimiento de datos biométricos
- * que se muestra al entrar a esta pantalla (ver #consentOverlay).
- * Si acepta: cierra el modal y quita el atributo "inert" que hasta
- * ese momento bloqueaba cualquier interacción con el resto de la
- * página. Si no acepta: lo manda a la pantalla /sin-autorizar/ sin
- * dejarlo usar esta pantalla.
- */
-function responderConsentimiento(aceptado){
-  const overlay=document.getElementById('consentOverlay');
-  const contenido=document.getElementById('appContent');
-  if(aceptado){
-    consentimientoAceptado=true;
-    overlay.style.display='none';
-    contenido.removeAttribute('inert');
-  } else {
-    window.location='/sin-autorizar/';
-  }
-}
-
 /** Alterna entre el panel "Grabar" y el panel "Subir archivo" de la muestra de voz. */
 function switchTab(tab){
   document.getElementById('tab-rec').classList.toggle('active',tab==='rec');
@@ -124,21 +103,6 @@ onVoiceNameInput();
 function abrirSelectorArchivo(){
   if(!validateName())return;
   document.getElementById('fileInput').click();
-}
-
-/**
- * Segunda barrera de seguridad además del modal: aunque este código
- * solo es alcanzable después de aceptar el consentimiento (el resto
- * de la página queda "inert" hasta entonces), esta función se llama
- * de nuevo justo antes de clonar por si alguien manipula el DOM
- * desde las herramientas de desarrollador para saltarse el modal.
- */
-function tieneConsentimiento(){
-  if(!consentimientoAceptado){
-    toast('Debes aceptar el aviso de datos personales para clonar tu voz','warn',5000);
-    return false;
-  }
-  return true;
 }
 
 /** Inicia o detiene la grabación del micrófono; valida que dure entre 30s y 3min antes de habilitar "Clonar". */
@@ -223,7 +187,6 @@ function extensionParaMime(mime){
 
 /** Envía la muestra grabada por micrófono a /clonar-voz/. */
 async function clonarGrabacion(){
-  if(!tieneConsentimiento())return;
   const name=validateName();if(!name)return;
   if(!audioBlob){toast('Graba al menos 30 segundos primero','warn');return;}
   setLoading('btnCloneRec','spinRec',true);
@@ -343,7 +306,6 @@ function archivoSeleccionado(){
 
 /** Envía el archivo de audio subido por el usuario a /clonar-voz/. */
 async function clonarArchivo(){
-  if(!tieneConsentimiento())return;
   const name=validateName();if(!name)return;
   const f=document.getElementById('fileInput').files[0];
   if(!f){toast('Selecciona un archivo de audio','warn');return;}
