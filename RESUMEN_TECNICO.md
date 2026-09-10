@@ -50,7 +50,7 @@ Cada pantalla es un documento HTML independiente (arquitectura *multi-page appli
 | POST | `/clonar-voz/` | `entrenar_voz` | Recibe la(s) muestra(s) de audio → ElevenLabs crea la voz clonada (Instant Voice Cloning) |
 | GET | `/listar-voces/` | `listar_voces` | Devuelve las voces disponibles en la cuenta de ElevenLabs (propias + de stock) |
 | POST | `/eliminar-voz/` | `eliminar_voz` | Elimina una voz clonada de la cuenta de ElevenLabs |
-| POST | `/enviar-teams/` | `enviar_teams` | Reenvía un mensaje ya mejorado a un canal de Microsoft Teams, a través del webhook que el propio usuario configuró |
+| POST | `/enviar-teams/` | `enviar_teams` | Reenvía el texto de un mensaje ya mejorado a un chat de Microsoft Teams, a través del webhook que el propio usuario configuró |
 
 Toda la lógica de negocio (llamadas a OpenAI/ElevenLabs, validaciones) vive exclusivamente en `voiceapp/voiceapp/views.py`; las plantillas HTML no contienen lógica de servidor.
 
@@ -82,11 +82,24 @@ La pestaña "Historial" de Mensajes guarda los últimos 30 mensajes mejorados (t
 
 ### 5.4 Integración con Microsoft Teams
 
-Permite enviar el mensaje ya mejorado directamente a un canal de Teams, a través de un **Incoming Webhook** que el propio usuario crea desde su canal (Teams: *canal → "⋯" → Workflows → plantilla "Send webhook alerts to a channel"*; es el mecanismo vigente — Microsoft retiró en 2026 los antiguos "Office 365 Connectors"). La URL del webhook se guarda en `localStorage`, igual que el resto de preferencias del usuario.
+Permite enviar el **texto** del mensaje ya mejorado directamente a un chat de Teams (no hace falta un equipo ni un canal), a través de un **Incoming Webhook** que el propio usuario crea desde ese chat (Teams: *chat → "⋯" → Workflows → plantilla "Send webhook alerts to a chat"*; es el mecanismo vigente — Microsoft retiró en 2026 los antiguos "Office 365 Connectors". La plantilla equivalente para un canal es "...to a channel", por si la empresa sí trabaja con equipos/canales). Por ahora solo se envía texto: el audio no se puede adjuntar sin alojarlo en una URL pública, algo que la app no tiene (ver sección 2). La URL del webhook se guarda en `localStorage`, igual que el resto de preferencias del usuario.
 
 **Por qué el envío pasa por el backend (`enviar_teams()`) y no se llama directo desde el navegador:** el webhook de Teams no responde con cabeceras CORS para peticiones desde otro origen, así que un `fetch()` directo desde JavaScript sería bloqueado por el navegador. El servidor hace esa llamada por su cuenta con la librería `requests` (sin restricción CORS, porque CORS es una regla que solo aplica a peticiones iniciadas por un navegador).
 
 **Por qué se valida el dominio de la URL en el servidor:** al ser un endpoint público (`/enviar-teams/`), sin esa validación cualquiera podría mandarle una URL arbitraria y usar el servidor como *proxy* para reenviar peticiones HTTP a donde quiera (un riesgo de *SSRF — Server-Side Request Forgery*). `enviar_teams()` solo reenvía el mensaje si el host de la URL termina en un dominio real de Microsoft (`logic.azure.com`, `powerautomate.com`, `powerplatform.com`, `flow.microsoft.com`, o el legado `webhook.office.com`).
+
+### 5.5 Canales de envío (grid de iconos en el resultado)
+
+Cada mensaje procesado muestra un grid de íconos para enviarlo por el canal que la empresa ya usa, sin agregar más servicios externos de los necesarios:
+
+| Canal | Contenido | Cómo funciona |
+|---|---|---|
+| WhatsApp | Audio | Web Share API del navegador (`navigator.share`) con el archivo de audio adjunto; el usuario elige WhatsApp en la hoja de compartir nativa del sistema |
+| WhatsApp | Texto | Link `https://wa.me/?text=...` (sin backend): abre WhatsApp con el mensaje precargado, listo para elegir el chat |
+| Microsoft Teams | Texto | El webhook descrito en 5.4 |
+| Correo (ej. Outlook) | Texto | Link `mailto:?subject=...&body=...` (sin backend): abre el cliente de correo predeterminado del sistema con el mensaje precargado |
+
+Ni WhatsApp-texto ni Correo pasan por el backend: son simples enlaces (`wa.me`, `mailto:`) resueltos enteramente por el navegador/sistema operativo, el mismo patrón de "abrir la app externa con el contenido precargado y dejar que el usuario elija destinatario y confirme el envío" que ya usaba el botón de WhatsApp-audio.
 
 ## 6. Parámetros clave — "temperature" (pregunta frecuente)
 

@@ -341,6 +341,20 @@ async function compartirWhatsApp() {
   }
 }
 
+/** Abre WhatsApp (app o web) con el texto mejorado precargado, listo para elegir el chat y enviarlo. */
+function compartirTextoWhatsApp() {
+  const texto = document.getElementById('texto-mejorado').textContent;
+  if (!texto || texto === '—') { mostrarToast('Genera un mensaje primero', 'error'); return; }
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+}
+
+/** Abre el cliente de correo por defecto (ej. Outlook) con el texto mejorado precargado en el cuerpo. */
+function compartirCorreo() {
+  const texto = document.getElementById('texto-mejorado').textContent;
+  if (!texto || texto === '—') { mostrarToast('Genera un mensaje primero', 'error'); return; }
+  window.location.href = 'mailto:?subject=' + encodeURIComponent('Mensaje de Líder Activo') + '&body=' + encodeURIComponent(texto);
+}
+
 // =====================
 // NOTIFICACIONES (toast)
 // =====================
