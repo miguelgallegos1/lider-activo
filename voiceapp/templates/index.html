@@ -59,13 +59,13 @@
 <main>
 
   <div class="tabs">
-    <button class="tab-btn active" onclick="cambiarTab('texto', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>
-      Escribir mensaje
-    </button>
-    <button class="tab-btn" onclick="cambiarTab('audio', this)">
+    <button class="tab-btn active" onclick="cambiarTab('audio', this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
       Grabar mensaje
+    </button>
+    <button class="tab-btn" onclick="cambiarTab('texto', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>
+      Escribir mensaje
     </button>
     <button class="tab-btn" onclick="cambiarTab('voces', this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -74,7 +74,7 @@
   </div>
 
   <!-- PANEL TEXTO -->
-  <div id="panel-texto" class="tab-panel active">
+  <div id="panel-texto" class="tab-panel">
     <div class="card">
       <div class="card-title">Tu mensaje</div>
       <label for="textarea-msg">Escribe lo que quieres comunicar a tu equipo</label>
@@ -134,7 +134,7 @@
   </div>
 
   <!-- PANEL AUDIO -->
-  <div id="panel-audio" class="tab-panel">
+  <div id="panel-audio" class="tab-panel active">
     <div class="card">
       <div class="card-title">Tu mensaje de voz</div>
       <div class="record-area">
