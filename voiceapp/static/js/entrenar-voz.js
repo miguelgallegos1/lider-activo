@@ -9,6 +9,36 @@ let mediaRecorder=null,chunks=[],audioBlob=null,timerInt=null,secs=0;
 let toastIntervalId=null;
 let recPreviewUrl=null,filePreviewUrl=null;  // object URLs de los reproductores de verificación; se revocan al reemplazarlos
 
+/**
+ * Analiza un Blob de audio para detectar si es esencialmente silencio
+ * (grabación vacía, micrófono tapado/muteado, archivo en blanco). Se
+ * corre ANTES de habilitar "Clonar" para no gastar la llamada a
+ * ElevenLabs entrenando una voz con una muestra sin voz real adentro.
+ * Devuelve true si es silencio; si el audio no se puede decodificar
+ * (formato raro, etc.) no bloquea -deja que decida el backend-.
+ */
+async function audioEsSilencio(blob){
+  try{
+    const arrayBuffer=await blob.arrayBuffer();
+    const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const audioBuffer=await audioCtx.decodeAudioData(arrayBuffer);
+    let pico=0;
+    for(let canal=0;canal<audioBuffer.numberOfChannels;canal++){
+      const datos=audioBuffer.getChannelData(canal);
+      // Se muestrea cada 50 valores en vez de todos: de sobra para
+      // detectar silencio total sin trabar la pestaña en audios largos.
+      for(let i=0;i<datos.length;i+=50){
+        const v=Math.abs(datos[i]);
+        if(v>pico) pico=v;
+      }
+    }
+    audioCtx.close();
+    return pico<0.02;
+  }catch(e){
+    return false;
+  }
+}
+
 /*
  * Guion sugerido para leer mientras se graba la muestra de voz.
  * ElevenLabs no publica un texto fijo para esto (su documentación de
@@ -122,7 +152,7 @@ async function toggleRec(){
 
     mediaRecorder=new MediaRecorder(stream);
     mediaRecorder.ondataavailable=e=>chunks.push(e.data);
-    mediaRecorder.onstop=()=>{
+    mediaRecorder.onstop=async ()=>{
       stream.getTracks().forEach(t=>t.stop());
       clearInterval(timerInt);
       document.getElementById('micBtn').className='mic-btn';
@@ -151,6 +181,19 @@ async function toggleRec(){
         // realidad son MP4, el <audio> de abajo no puede decodificarlo
         // y muestra "Error" aunque la grabación en sí esté bien.
         audioBlob=new Blob(chunks,{type:mediaRecorder.mimeType||'audio/webm'});
+        document.getElementById('recStatus').textContent='Verificando la grabación...';
+
+        // Se valida que no sea silencio (mic tapado, muteado, etc.)
+        // ANTES de habilitar "Clonar": así no se gasta la llamada a
+        // ElevenLabs entrenando una voz con una muestra sin voz real.
+        if(await audioEsSilencio(audioBlob)){
+          audioBlob=null;
+          document.getElementById('btnCloneRec').disabled=true;
+          document.getElementById('recStatus').textContent='No se detectó voz (grabación en silencio). Revisa el micrófono e intenta de nuevo.';
+          toast('La grabación está en silencio, no se detectó voz','warn',5000);
+          return;
+        }
+
         document.getElementById('recStatus').innerHTML='Audio listo ('+secs+'s). Escúchalo antes de clonar.';
         document.getElementById('btnCloneRec').disabled=false;
         // Reproductor para que el usuario verifique la calidad de la
@@ -249,12 +292,23 @@ function archivoSeleccionado(){
     clearTimeout(timeoutId);
   };
 
-  const aceptar=(duracion)=>{
+  const aceptar=async (duracion)=>{
     if(resuelto)return; resuelto=true;
     limpiar();
     URL.revokeObjectURL(url);
-    document.getElementById('fileReady').style.display='flex';
     document.getElementById('fileName').textContent=f.name+(duracion?' ('+Math.round(duracion)+'s)':'');
+    document.getElementById('fileReady').style.display='flex';
+
+    // Se valida que el archivo no sea silencio (grabación en blanco,
+    // export vacío, etc.) ANTES de habilitar "Clonar": así no se gasta
+    // la llamada a ElevenLabs con una muestra sin voz real.
+    if(await audioEsSilencio(f)){
+      document.getElementById('btnCloneFile').disabled=true;
+      document.getElementById('fileName').textContent=f.name+' — no se detectó voz (silencio)';
+      toast('Ese archivo está en silencio, no se detectó voz','warn',5000);
+      return;
+    }
+
     document.getElementById('btnCloneFile').disabled=false;
     // Reproductor aparte del "url" de arriba (que solo se usaba para
     // medir la duración y ya se revocó): deja escuchar el archivo
@@ -359,24 +413,6 @@ async function enviarClone(form){
 function setLoading(btnId,spinnerId,on){
   document.getElementById(btnId).disabled=on;
   document.getElementById(spinnerId).style.display=on?'block':'none';
-}
-
-/** Limpia el estado de grabación para permitir capturar una nueva muestra desde cero. */
-function resetFlow(){
-  audioBlob=null;chunks=[];mediaRecorder=null;
-  clearInterval(timerInt);
-  document.getElementById('micBtn').className='mic-btn';
-  document.getElementById('recStatus').textContent='Toca para comenzar a grabar';
-  document.getElementById('recTimer').textContent='';
-  document.getElementById('progFill').style.width='0%';
-  document.getElementById('progWrap').style.display='none';
-  document.getElementById('btnCloneRec').disabled=true;
-  document.querySelectorAll('.script-p').forEach(el=>el.classList.remove('active'));
-  if(recPreviewUrl){URL.revokeObjectURL(recPreviewUrl);recPreviewUrl=null;}
-  const preview=document.getElementById('recPreview');
-  preview.hidden=true; preview.removeAttribute('src');
-  switchTab('rec');
-  toast('Listo para grabar una nueva muestra','ok');
 }
 
 const zone=document.getElementById('uploadZone');

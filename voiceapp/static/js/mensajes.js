@@ -15,6 +15,34 @@ let audioBase64 = null;
 let recordPreviewUrl = null;   // object URL del reproductor de verificación del mensaje grabado
 let avisoTiempoMostrado = false;  // evita repetir el aviso de "quedan 15s" en la misma grabación
 
+/**
+ * Analiza un Blob de audio para detectar si es esencialmente silencio
+ * (mic tapado/muteado, grabación vacía). Se corre ANTES de habilitar
+ * "Transcribir, mejorar y generar audio" para no gastar tokens de
+ * Whisper/GPT ni créditos de ElevenLabs en un audio sin voz real.
+ * Devuelve true si es silencio; si no se puede decodificar (formato
+ * raro, etc.) no bloquea -deja que decida el backend-.
+ */
+async function audioEsSilencio(blob) {
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    let pico = 0;
+    for (let canal = 0; canal < audioBuffer.numberOfChannels; canal++) {
+      const datos = audioBuffer.getChannelData(canal);
+      for (let i = 0; i < datos.length; i += 50) {
+        const v = Math.abs(datos[i]);
+        if (v > pico) pico = v;
+      }
+    }
+    audioCtx.close();
+    return pico < 0.02;
+  } catch (e) {
+    return false;
+  }
+}
+
 // =====================
 // DROPDOWN PERSONALIZADO
 // =====================
@@ -215,7 +243,7 @@ async function toggleGrabacion() {
 
     mediaRecorder = new MediaRecorder(stream);
     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-    mediaRecorder.onstop = () => {
+    mediaRecorder.onstop = async () => {
       stream.getTracks().forEach(t => t.stop());
       clearInterval(timerInterval);
       document.getElementById('record-btn').className = 'record-btn idle';
@@ -238,6 +266,19 @@ async function toggleGrabacion() {
       // etiquetarlo distinto confunde tanto la reproducción como la
       // detección de formato de Whisper del lado del servidor.
       audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+      document.getElementById('record-status').textContent = 'Verificando la grabación...';
+
+      // Se valida que no sea silencio (mic tapado, muteado, etc.) ANTES
+      // de habilitar "Transcribir...": así no se gastan tokens de
+      // Whisper/GPT ni créditos de ElevenLabs en un audio sin voz real.
+      if (await audioEsSilencio(audioBlob)) {
+        audioBlob = null;
+        document.getElementById('btn-audio').disabled = true;
+        document.getElementById('record-status').textContent = 'No se detectó voz (grabación en silencio). Revisa el micrófono e intenta de nuevo.';
+        mostrarToast('La grabación está en silencio, no se detectó voz', 'warn', 5000);
+        return;
+      }
+
       document.getElementById('record-status').innerHTML = `Audio listo (${segundos}s). Escúchalo antes de procesar.`;
       document.getElementById('btn-audio').disabled = false;
 
