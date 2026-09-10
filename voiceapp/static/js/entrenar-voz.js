@@ -105,7 +105,7 @@ function abrirSelectorArchivo(){
   document.getElementById('fileInput').click();
 }
 
-/** Inicia o detiene la grabación del micrófono; valida que dure entre 30s y 3min antes de habilitar "Clonar". */
+/** Inicia o detiene la grabación del micrófono; valida que dure entre 1 y 3min antes de habilitar "Clonar". */
 async function toggleRec(){
   if(mediaRecorder&&mediaRecorder.state==='recording'){mediaRecorder.stop();return;}
   if(!validateName())return;
@@ -123,8 +123,8 @@ async function toggleRec(){
 
       const preview=document.getElementById('recPreview');
 
-      if(secs < 30){
-        toast('La muestra debe tener al menos 30 segundos','warn');
+      if(secs < 60){
+        toast('La muestra debe tener al menos 1 minuto','warn');
         audioBlob=null;
         document.getElementById('btnCloneRec').disabled=true;
         document.getElementById('recStatus').textContent='Toca para intentarlo de nuevo';
@@ -166,7 +166,7 @@ async function toggleRec(){
     timerInt=setInterval(()=>{
       secs++;
       document.getElementById('recTimer').textContent=secs+'s grabando...';
-      document.getElementById('progFill').style.width=Math.min((secs/30)*100,100)+'%';
+      document.getElementById('progFill').style.width=Math.min((secs/60)*100,100)+'%';
       resaltarGuion(secs);
       if(secs>=180) mediaRecorder.stop();
     },1000);
@@ -188,7 +188,7 @@ function extensionParaMime(mime){
 /** Envía la muestra grabada por micrófono a /clonar-voz/. */
 async function clonarGrabacion(){
   const name=validateName();if(!name)return;
-  if(!audioBlob){toast('Graba al menos 30 segundos primero','warn');return;}
+  if(!audioBlob){toast('Graba al menos 1 minuto primero','warn');return;}
   setLoading('btnCloneRec','spinRec',true);
   const form=new FormData();
   form.append('samples',audioBlob,'voz.'+extensionParaMime(audioBlob.type));
@@ -199,7 +199,7 @@ async function clonarGrabacion(){
 
 /**
  * Valida el archivo de audio elegido en "Subir archivo" (tamaño y
- * duración entre 30s y 3min) antes de habilitar el botón de clonar.
+ * duración entre 1 y 3min) antes de habilitar el botón de clonar.
  * Incluye manejo especial para navegadores/formatos que no calculan
  * bien la duración de entrada (ver comentario más abajo) y un
  * timeout de respaldo para que la interfaz nunca se quede colgada
@@ -273,7 +273,7 @@ function archivoSeleccionado(){
           audio.removeEventListener('timeupdate',onTU);
           const d=audio.duration;
           if(isFinite(d)){
-            if(d<30){rechazar('El audio debe tener al menos 30 segundos');return;}
+            if(d<60){rechazar('El audio debe tener al menos 1 minuto');return;}
             if(d>180){rechazar('El audio no puede superar los 3 minutos');return;}
             aceptar(d);
           } else {
@@ -286,7 +286,7 @@ function archivoSeleccionado(){
       }
       return;
     }
-    if(audio.duration<30){rechazar('El audio debe tener al menos 30 segundos');return;}
+    if(audio.duration<60){rechazar('El audio debe tener al menos 1 minuto');return;}
     if(audio.duration>180){rechazar('El audio no puede superar los 3 minutos');return;}
     aceptar(audio.duration);
   };

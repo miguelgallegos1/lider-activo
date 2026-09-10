@@ -33,7 +33,7 @@ flowchart LR
 | Pantalla | URL | Plantilla | Responsabilidad |
 |---|---|---|---|
 | Autorización | `/` | `autorizacion.html` | Punto de entrada real de la app. Aviso de tratamiento de dato biométrico (Ley Orgánica de Protección de Datos Personales — LOPDP, Ecuador). Sin aceptar, no se puede continuar; el rechazo se resuelve en la misma pantalla (sin navegar) |
-| Entrenar mi voz | `/entrenar-voz/` | `onboarding.html` | Grabar (con guion de lectura sugerido) o subir un archivo de audio (30s–3min) y clonarlo con ElevenLabs (Instant Voice Cloning). Se puede saltar sin entrenar |
+| Entrenar mi voz | `/entrenar-voz/` | `onboarding.html` | Grabar (con guion de lectura sugerido) o subir un archivo de audio (1–3min) y clonarlo con ElevenLabs (Instant Voice Cloning). Se puede saltar sin entrenar |
 | Mensajes | `/mensajes/` | `index.html` | Pantalla principal: escribir o grabar un mensaje, elegir tono/idioma/voz, mejorarlo con IA y generar el audio final. Gestiona también "Mis voces" (listar/usar/eliminar) |
 
 Cada pantalla es un documento HTML independiente (arquitectura *multi-page application*, no *SPA*): no hay enrutador de JavaScript ni estado compartido entre pantallas más allá de `localStorage` (para recordar la voz activa) y la navegación completa del navegador entre URLs.
@@ -69,7 +69,7 @@ El **prompt del sistema** de `mejorar_texto()` está escrito siguiendo la guía 
 
 | Servicio | Función en el código | Para qué se usa |
 |---|---|---|
-| Instant Voice Cloning (IVC) | `entrenar_voz()` | Crea una voz clonada a partir de una muestra de audio de 30s–3min, con `remove_background_noise=True` (limpia ruido de fondo antes de entrenar) |
+| Instant Voice Cloning (IVC) | `entrenar_voz()` | Crea una voz clonada a partir de una muestra de audio de 1–3min, con `remove_background_noise=True` (limpia ruido de fondo antes de entrenar) |
 | Text-to-Speech | `texto_a_audio()` | Convierte el texto ya mejorado en un archivo de audio (MP3), con la voz clonada del usuario o la voz por defecto de la cuenta |
 | Voices (listar/eliminar) | `listar_voces()`, `eliminar_voz()` | Gestiona el catálogo de voces de la cuenta (no hay tabla propia: ElevenLabs es la fuente de verdad) |
 
@@ -106,7 +106,7 @@ Esta es una pregunta natural del tribunal porque **"temperature" existe en OpenA
 
 ## 7. Ajustes para mejorar la fidelidad del clon de voz
 
-La documentación de ElevenLabs para Instant Voice Cloning no publica un guion de texto fijo a leer; recomienda sobre todo **audio limpio, sin ruido, con tono/ritmo consistente**, y advierte que pasados ~3 minutos el beneficio adicional es mínimo (por eso el límite de la app es 30s–3min, no más). En base a eso:
+La documentación de ElevenLabs para Instant Voice Cloning no publica un guion de texto fijo a leer; recomienda sobre todo **audio limpio, sin ruido, con tono/ritmo consistente**, y advierte que pasados ~3 minutos el beneficio adicional es mínimo (por eso el límite de la app es 1–3min, no más). En base a eso:
 
 - `remove_background_noise=True` al crear la voz (limpia ruido de habitación/eco antes de entrenar).
 - `voice_settings` afinados para favorecer el parecido con la voz real (`similarity_boost=0.9`, `use_speaker_boost=True`) por sobre la expresividad.
