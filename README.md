@@ -10,11 +10,9 @@ La app tiene 3 pantallas, cada una con su propia URL:
 
 | Pantalla | URL | Qué hace |
 |---|---|---|
-| Entrenar mi voz | `/entrenar-voz/` | Punto de entrada de la app. Pide consentimiento para tratar un dato biométrico (LOPDP Ecuador) y, si se acepta, permite grabar o subir una muestra de audio (30s–5min) para clonar la voz del usuario con ElevenLabs. |
-| Mensajes | `/mensajes/` | Pantalla principal: escribir o grabar un mensaje, elegir tono/idioma/voz, mejorarlo con IA (GPT) y generar el audio final. También lista y gestiona ("Mis voces") las voces clonadas. |
-| Sin autorización | `/sin-autorizar/` | A donde se redirige si el usuario no acepta el aviso de datos personales en "Entrenar mi voz". |
-
-`/` no tiene contenido propio: solo redirige a `/entrenar-voz/`.
+| Autorización | `/` | Punto de entrada real de la app. Aviso de tratamiento de un dato biométrico (LOPDP Ecuador); sin aceptar no se puede continuar. Si se rechaza, se queda en la misma pantalla (sin navegar) con opción de reintentar. |
+| Entrenar mi voz | `/entrenar-voz/` | Grabar (con guion de lectura sugerido, colapsado por defecto) o subir un archivo de audio (30s–3min) y clonarlo con ElevenLabs. Puede saltarse sin entrenar. |
+| Mensajes | `/mensajes/` | Pantalla principal: escribir o grabar un mensaje, elegir tono/idioma/voz, mejorarlo con IA (GPT, con filtro de contenido ofensivo/amenazas) y generar el audio final. También lista y gestiona ("Mis voces") las voces clonadas. |
 
 ## Stack
 
@@ -47,19 +45,22 @@ lider-activo/
     │   └── __init__.py
     │
     ├── templates/              # Un archivo HTML por pantalla (solo estructura, sin CSS/JS inline)
-    │   ├── index.html          # Pantalla "Mensajes"
+    │   ├── autorizacion.html   # Pantalla "Autorización" (punto de entrada, "/")
     │   ├── onboarding.html      # Pantalla "Entrenar mi voz"
-    │   └── sin_autorizar.html  # Pantalla "Sin autorización"
+    │   └── index.html          # Pantalla "Mensajes"
     │
     └── static/                 # CSS y JavaScript, un archivo por pantalla (misma separación que templates/)
         ├── css/
-        │   ├── mensajes.css
+        │   ├── autorizacion.css
         │   ├── entrenar-voz.css
-        │   └── sin-autorizar.css
+        │   └── mensajes.css
         └── js/
-            ├── mensajes.js
-            └── entrenar-voz.js
+            ├── autorizacion.js
+            ├── entrenar-voz.js
+            └── mensajes.js
 ```
+
+Ver [`RESUMEN_TECNICO.md`](RESUMEN_TECNICO.md) para un resumen técnico más detallado (APIs externas, parámetros de OpenAI/ElevenLabs, decisiones de diseño y preguntas frecuentes), pensado como apoyo para la sustentación del proyecto de graduación.
 
 **Por qué el CSS/HTML/servidor están separados:** cada plantilla en `templates/` solo tiene marcado HTML; su estilo vive en el `.css` correspondiente dentro de `static/css/` y su lógica de interfaz en el `.js` correspondiente dentro de `static/js/`, enlazados con `<link rel="stylesheet">` y `<script src="...">` (usando el sistema de archivos estáticos de Django, `{% static %}`). Toda la lógica de servidor (llamadas a OpenAI/ElevenLabs, endpoints JSON) vive exclusivamente en `voiceapp/voiceapp/views.py`; ninguna plantilla ni archivo estático contiene lógica de negocio.
 
@@ -90,7 +91,7 @@ lider-activo/
    python manage.py migrate
    python manage.py runserver
    ```
-4. Abrir http://127.0.0.1:8000/ (redirige a la pantalla de entrenamiento de voz).
+4. Abrir http://127.0.0.1:8000/ (pantalla de autorización, punto de entrada de la app).
 
 ## Deploy (Railway)
 
