@@ -12,6 +12,8 @@ let audioBlob = null;
 let timerInterval = null;
 let segundos = 0;
 let audioBase64 = null;
+let recordPreviewUrl = null;   // object URL del reproductor de verificación del mensaje grabado
+let avisoTiempoMostrado = false;  // evita repetir el aviso de "quedan 15s" en la misma grabación
 
 // =====================
 // DROPDOWN PERSONALIZADO
@@ -195,12 +197,22 @@ async function procesarTexto() {
 // =====================
 // GRABAR AUDIO
 // =====================
-/** Inicia o detiene la grabación del micrófono con la Web Audio API (MediaRecorder); tope de 120s. */
+/** Inicia o detiene la grabación del micrófono con la Web Audio API (MediaRecorder); tope de 3 minutos, con aviso a los 15s restantes. Volver a pulsar el botón descarta la grabación anterior y empieza una nueva. */
 async function toggleGrabacion() {
   if (mediaRecorder && mediaRecorder.state === 'recording') { mediaRecorder.stop(); return; }
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     audioChunks = [];
+    avisoTiempoMostrado = false;
+
+    // Al empezar una grabación nueva se descarta la anterior (si había
+    // una): se limpia el reproductor de verificación y se revoca su
+    // object URL para no ir acumulando blobs en memoria.
+    const preview = document.getElementById('record-preview');
+    if (recordPreviewUrl) { URL.revokeObjectURL(recordPreviewUrl); recordPreviewUrl = null; }
+    preview.hidden = true;
+    preview.removeAttribute('src');
+
     mediaRecorder = new MediaRecorder(stream);
     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
     mediaRecorder.onstop = () => {
@@ -226,15 +238,26 @@ async function toggleGrabacion() {
       // etiquetarlo distinto confunde tanto la reproducción como la
       // detección de formato de Whisper del lado del servidor.
       audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-      document.getElementById('record-status').innerHTML = `Audio listo (${segundos}s). Pulsa procesar.`;
+      document.getElementById('record-status').innerHTML = `Audio listo (${segundos}s). Escúchalo antes de procesar.`;
       document.getElementById('btn-audio').disabled = false;
+
+      // Reproductor para verificar la grabación (ruido, volumen, corte)
+      // antes de gastar la llamada a Whisper/GPT/ElevenLabs con un
+      // audio que podría salir mal.
+      recordPreviewUrl = URL.createObjectURL(audioBlob);
+      preview.src = recordPreviewUrl;
+      preview.hidden = false;
     };
     mediaRecorder.start();
     segundos = 0;
     timerInterval = setInterval(() => {
       segundos++;
       document.getElementById('timer').textContent = `${segundos}s grabando...`;
-      if (segundos >= 120) mediaRecorder.stop();
+      if (segundos === 165 && !avisoTiempoMostrado) {
+        avisoTiempoMostrado = true;
+        mostrarToast('Quedan 15 segundos de grabación', 'warn', 4000);
+      }
+      if (segundos >= 180) mediaRecorder.stop();
     }, 1000);
     document.getElementById('record-btn').className = 'record-btn recording';
     document.getElementById('record-status').innerHTML = '<strong>Grabando...</strong> Toca para detener';

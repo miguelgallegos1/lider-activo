@@ -157,6 +157,7 @@ textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3p
 @keyframes pulse { 0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(220,38,38,.4)}50%{transform:scale(1.05);box-shadow:0 0 0 12px rgba(220,38,38,0)}}
 .record-status { font-size: .9rem; color: var(--gray-600); }
 .record-status strong { color: #DC2626; }
+.preview-audio { width: 100%; margin-top: 12px; height: 36px; animation: fadeIn .25s ease; }
 
 /* RESULT */
 .result-section { display: none; }
