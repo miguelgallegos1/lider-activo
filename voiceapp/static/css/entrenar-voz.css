@@ -34,8 +34,6 @@ nav{height:60px;background:white;display:flex;align-items:center;justify-content
 .nav-icon{width:32px;height:32px;background:var(--brand);border-radius:8px;display:flex;align-items:center;justify-content:center}
 .nav-icon svg{width:18px;height:18px;color:white}
 .nav-badge{background:var(--brand-light);color:var(--brand);font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.05em}
-.skip-btn{background:var(--gray100);border:none;padding:10px 16px;border-radius:8px;font-weight:600;font-family:inherit;cursor:pointer;font-size:.875rem;color:var(--gray800);transition:background .2s}
-.skip-btn:hover{background:var(--gray200)}
 
 /* HERO — plano, sin degradado ni animación; el impacto viene de la
    tipografía grande y la composición en dos columnas. */

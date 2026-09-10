@@ -29,8 +29,6 @@ p{font-size:.875rem;color:var(--gray800);line-height:1.6;margin-bottom:1.5rem}
 .actions{display:flex;flex-direction:column;gap:.6rem}
 .btn-primary{padding:12px;font-size:.9rem;font-weight:600;font-family:inherit;border:none;border-radius:8px;background:var(--brand);color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;transition:background .2s}
 .btn-primary:hover{background:var(--brand-dark)}
-.btn-ghost{padding:12px;font-size:.875rem;font-weight:500;font-family:inherit;border:1px solid var(--gray200);border-radius:8px;background:transparent;color:var(--gray700);cursor:pointer;text-decoration:none;display:block;transition:background .2s}
-.btn-ghost:hover{background:var(--gray50)}
 
 .app-footer{text-align:center;padding:1.5rem 1rem;font-size:.72rem;color:var(--gray400);border-top:1px solid var(--gray200)}
 
