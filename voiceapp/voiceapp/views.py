@@ -36,6 +36,25 @@ from elevenlabs import VoiceSettings
 openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
 eleven_client = ElevenLabs(api_key=settings.ELEVENLABS_API_KEY)
 
+# Formatos de audio que Whisper sabe decodificar. Se usa tanto para
+# transcribir un mensaje (procesar_audio) como para detectar el idioma
+# de una muestra de voz (entrenar_voz).
+EXTENSIONES_AUDIO_PERMITIDAS = {'.webm', '.mp4', '.m4a', '.ogg', '.wav', '.mp3', '.mpeg', '.mpga'}
+
+
+def _extension_audio_segura(nombre_archivo):
+    """
+    Extensión real de `nombre_archivo` si Whisper la reconoce, o
+    '.webm' si no (nombre vacío, extensión rara, etc.). Sirve para que
+    el archivo temporal que se le pasa a Whisper quede etiquetado con
+    el formato real: en iPhone/Safari MediaRecorder graba en MP4, no
+    en WebM, y Whisper usa la extensión para elegir cómo decodificar
+    el archivo, así que forzar siempre ".webm" rompe la transcripción
+    de grabaciones hechas desde iPhone.
+    """
+    _, extension = os.path.splitext(nombre_archivo or '')
+    return extension.lower() if extension.lower() in EXTENSIONES_AUDIO_PERMITIDAS else '.webm'
+
 
 # =============================================================
 # Pantallas
@@ -178,6 +197,38 @@ def entrenar_voz(request):
         if bloqueado:
             return JsonResponse({'error': 'El nombre de la voz contiene lenguaje inapropiado. Elige otro nombre.'}, status=400)
 
+        # "labels" es metadata para organizar/filtrar voces en el panel
+        # de ElevenLabs (no afecta la calidad ni el parecido del clon
+        # en sí, eso lo maneja remove_background_noise/voice_settings).
+        # El acento queda fijo porque la app se usa en Ecuador; el
+        # idioma se detecta automáticamente con Whisper a partir de la
+        # primera muestra, para no asumirlo si algún usuario graba en
+        # otro idioma.
+        labels = {'accent': 'Latino (Ecuador)'}
+        try:
+            extension = _extension_audio_segura(archivos[0].name)
+            with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as tmp:
+                tmp.write(files_bytes[0])
+                tmp_path = tmp.name
+            try:
+                with open(tmp_path, 'rb') as f:
+                    deteccion = openai_client.audio.transcriptions.create(
+                        model='whisper-1',
+                        file=f,
+                        response_format='verbose_json',
+                    )
+                idioma_detectado = getattr(deteccion, 'language', None)
+                if idioma_detectado:
+                    labels['language'] = idioma_detectado
+            finally:
+                os.unlink(tmp_path)
+        except Exception:
+            # Si la detección falla (audio raro, error de red, etc.) no
+            # se bloquea la clonación por esto: se sigue sin el label
+            # de idioma.
+            import traceback
+            print(traceback.format_exc())
+
         voice = eleven_client.voices.ivc.create(
             name=voice_name,
             files=files_bytes,
@@ -189,11 +240,7 @@ def entrenar_voz(request):
             # ElevenLabs lo limpia con su propio modelo de aislamiento
             # de audio antes de entrenar la voz.
             remove_background_noise=True,
-            # Si se omite "labels", el SDK envía un valor que la API
-            # de ElevenLabs rechaza con el error 400 "Labels must be
-            # serialized dictionary object." Pasar un diccionario
-            # vacío evita ese bug.
-            labels={},
+            labels=labels,
         )
 
         return JsonResponse({
@@ -320,17 +367,10 @@ def procesar_audio(request):
 
         # La API de transcripción de OpenAI necesita un archivo real
         # en disco (no acepta bytes en memoria directamente), así que
-        # el audio recibido se escribe primero a un archivo temporal.
-        # El sufijo del archivo temporal debe reflejar el formato real
-        # grabado por el navegador (el frontend ya lo manda en el
-        # nombre): en iPhone/Safari MediaRecorder graba en MP4, no en
-        # WebM, y Whisper usa la extensión para elegir cómo decodificar
-        # el archivo, así que forzar siempre ".webm" rompía la
-        # transcripción de grabaciones hechas desde iPhone.
-        EXTENSIONES_PERMITIDAS = {'.webm', '.mp4', '.m4a', '.ogg', '.wav', '.mp3', '.mpeg', '.mpga'}
-        _, extension = os.path.splitext(archivo_audio.name or '')
-        if extension.lower() not in EXTENSIONES_PERMITIDAS:
-            extension = '.webm'
+        # el audio recibido se escribe primero a un archivo temporal,
+        # con la extensión real del archivo subido (ver
+        # _extension_audio_segura).
+        extension = _extension_audio_segura(archivo_audio.name)
 
         with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as tmp:
             for chunk in archivo_audio.chunks():
