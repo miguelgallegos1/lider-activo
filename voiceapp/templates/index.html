@@ -25,7 +25,7 @@
       <span class="voice-dot"></span>
       <span id="voiceIndicatorText">Voz clonada activa</span>
     </div>
-    <a class="train-link" href="/entrenar-voz/">Entrenar nueva voz</a>
+    <a class="train-link" href="/entrenar-voz/" onclick="return confirmarNavegacion(event,'/entrenar-voz/')">Entrenar nueva voz</a>
   </div>
 </nav>
 
@@ -221,7 +221,7 @@
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
         <div class="card-title" style="margin:0">Mis voces clonadas</div>
-        <a href="/entrenar-voz/" style="font-size:.8rem;color:var(--brand);text-decoration:none;font-weight:600;display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;background:var(--brand-light)">
+        <a href="/entrenar-voz/" style="font-size:.8rem;color:var(--brand);text-decoration:none;font-weight:600;display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;background:var(--brand-light)" onclick="return confirmarNavegacion(event,'/entrenar-voz/')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
           Crear nueva voz
         </a>

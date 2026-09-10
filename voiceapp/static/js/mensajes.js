@@ -453,6 +453,35 @@ function cerrarToast() {
   document.getElementById('toast').classList.remove('show');
 }
 
+/** Hay texto escrito, una grabación (lista o en curso) sin procesar todavía. */
+function hayCambiosSinGuardar() {
+  const texto = document.getElementById('textarea-msg').value.trim();
+  const grabando = mediaRecorder && mediaRecorder.state === 'recording';
+  return !!texto || !!audioBlob || grabando;
+}
+
+/**
+ * Intercepta los links que sacan de esta pantalla ("Entrenar nueva
+ * voz", "Crear nueva voz"): si hay un mensaje escrito o grabado sin
+ * procesar todavía, corta la navegación y muestra una confirmación
+ * propia de la app (no el diálogo nativo del navegador) antes de
+ * dejar salir. Se usa como onclick="return confirmarNavegacion(event,
+ * '/destino/')" en esos links.
+ */
+function confirmarNavegacion(event, destino) {
+  if (!hayCambiosSinGuardar()) return true;
+  event.preventDefault();
+  clearInterval(toastIntervalId);
+  const t = document.getElementById('toast');
+  t.innerHTML = `Tienes un mensaje escrito o grabado que todavía no procesaste. Si sales ahora, lo vas a perder.
+    <div style="display:flex;gap:8px;margin-top:10px;justify-content:center">
+      <button onclick="window.location.href='${destino}'" style="background:#DC2626;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:inherit">Salir de todas formas</button>
+      <button onclick="cerrarToast()" style="background:rgba(255,255,255,.15);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-family:inherit">Quedarme</button>
+    </div>`;
+  t.className = 'toast show error';
+  return false;
+}
+
 /** Llama a /eliminar-voz/ y refresca la lista; si la voz eliminada era la activa, la limpia de localStorage. */
 async function eliminarVoz(voiceId) {
   cerrarToast();

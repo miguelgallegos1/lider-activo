@@ -101,6 +101,35 @@ function cerrarToast(){
   document.getElementById('toast').classList.remove('show');
 }
 
+/** Hay una grabación, una grabación en curso, o un archivo elegido que todavía no se clonó. */
+function hayCambiosSinGuardar(){
+  const grabando=mediaRecorder&&mediaRecorder.state==='recording';
+  const archivoElegido=document.getElementById('fileInput').files.length>0;
+  return grabando||!!audioBlob||archivoElegido;
+}
+
+/**
+ * Intercepta los links que sacan de esta pantalla ("Saltar por
+ * ahora", "Continuar sin entrenar"): si hay una muestra grabada o
+ * cargada sin clonar todavía, corta la navegación y muestra una
+ * confirmación propia de la app (no el diálogo nativo del navegador)
+ * antes de dejar salir. Se usa como onclick="return
+ * confirmarNavegacion(event, '/destino/')" en esos links.
+ */
+function confirmarNavegacion(event,destino){
+  if(!hayCambiosSinGuardar())return true;
+  event.preventDefault();
+  clearInterval(toastIntervalId);
+  const t=document.getElementById('toast');
+  t.innerHTML=`Tienes una muestra de voz grabada o cargada que todavía no clonaste. Si sales ahora, la vas a perder.
+    <div style="display:flex;gap:8px;margin-top:10px;justify-content:center">
+      <button onclick="window.location.href='${destino}'" style="background:#DC2626;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:inherit">Salir de todas formas</button>
+      <button onclick="cerrarToast()" style="background:rgba(255,255,255,.15);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-family:inherit">Quedarme</button>
+    </div>`;
+  t.className='toast show error';
+  return false;
+}
+
 /** Alterna entre el panel "Grabar" y el panel "Subir archivo" de la muestra de voz. */
 function switchTab(tab){
   document.getElementById('tab-rec').classList.toggle('active',tab==='rec');

@@ -22,7 +22,7 @@
     </div>
     Líder Activo
   </div>
-  <a href="/mensajes/"><button class="skip-btn">Saltar por ahora</button></a>
+  <a href="/mensajes/" onclick="return confirmarNavegacion(event,'/mensajes/')"><button class="skip-btn">Saltar por ahora</button></a>
 </nav>
 
 <div class="hero">
@@ -69,7 +69,7 @@
     <div class="tabs-row">
       <button class="tab-pill active" id="tab-rec" onclick="switchTab('rec')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-        Grabar voz
+        Grabar mi voz
       </button>
       <button class="tab-pill" id="tab-up" onclick="switchTab('up')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
@@ -136,7 +136,7 @@
     </div>
   </div>
 
-  <a href="/mensajes/" style="text-decoration:none">
+  <a href="/mensajes/" style="text-decoration:none" onclick="return confirmarNavegacion(event,'/mensajes/')">
     <button class="btn-ghost">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       Continuar sin entrenar
