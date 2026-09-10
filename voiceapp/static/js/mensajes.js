@@ -144,7 +144,7 @@ cargarVoces();
 // =====================
 // TABS
 // =====================
-/** Cambia a la pestaña `tab` ("texto"/"audio"/"voces") y refresca la lista de voces si corresponde. */
+/** Cambia a la pestaña `tab` ("texto"/"audio"/"historial"/"voces") y refresca la lista de voces/historial si corresponde. */
 function cambiarTab(tab, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -152,7 +152,8 @@ function cambiarTab(tab, btn) {
   btn.classList.add('active');
   document.getElementById('resultado').classList.remove('visible');
 
-  if (tab === 'voces') cargarVoces();
+  if (tab === 'voces') { cargarVoces(); cargarWebhookTeamsGuardado(); }
+  if (tab === 'historial') cargarHistorial();
 }
 
 function actualizarContador(el) {
@@ -183,6 +184,7 @@ async function procesarTexto() {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     mostrarResultado(data);
+    guardarEnHistorial({ ...data, tono, idioma });
   } catch (e) {
     mostrarToast(e.message || 'Error al procesar', 'error');
   } finally {
@@ -275,6 +277,7 @@ async function procesarAudio() {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     mostrarResultado(data);
+    guardarEnHistorial({ ...data, tono, idioma });
   } catch (e) {
     mostrarToast(e.message || 'Error al procesar', 'error');
   } finally {
@@ -406,4 +409,203 @@ function confirmarEliminar(voiceId, name) {
       <button onclick="cerrarToast()" style="background:rgba(255,255,255,.15);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-family:inherit">Cancelar</button>
     </div>`;
   toast.className = 'toast show error';
+}
+
+// =====================
+// HISTORIAL DE MENSAJES
+// =====================
+// Se guarda solo en este navegador (localStorage), no en el servidor:
+// coherente con el resto de la app, que no persiste datos de negocio
+// del lado del backend. Solo se guarda texto (original y mejorado) y
+// el tono/idioma usados; el audio NO se persiste (evita inflar
+// localStorage con base64 y no duplica indefinidamente un dato
+// sensible fuera de lo estrictamente necesario).
+const HISTORIAL_KEY = 'historial_mensajes';
+const HISTORIAL_MAX = 30;
+const TONOS_LABEL = { profesional: 'Profesional', motivador: 'Motivador', directo: 'Directo', 'empático': 'Empático' };
+
+/** Lee el historial guardado en localStorage; devuelve [] si no hay nada o está corrupto. */
+function leerHistorial() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORIAL_KEY)) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/** Agrega un mensaje ya mejorado al historial (lo más nuevo primero, tope de 30 entradas). */
+function guardarEnHistorial({ texto_original, texto_mejorado, tono, idioma }) {
+  const historial = leerHistorial();
+  historial.unshift({ id: Date.now(), fecha: new Date().toISOString(), texto_original, texto_mejorado, tono, idioma });
+  try {
+    localStorage.setItem(HISTORIAL_KEY, JSON.stringify(historial.slice(0, HISTORIAL_MAX)));
+  } catch (e) {
+    // localStorage lleno o deshabilitado (modo privado, etc.): no vale la pena
+    // interrumpir el flujo principal por no poder guardar el historial.
+  }
+}
+
+/** Pinta #historialList a partir de lo guardado en localStorage. */
+function cargarHistorial() {
+  const historial = leerHistorial();
+  const lista = document.getElementById('historialList');
+  if (historial.length === 0) {
+    lista.innerHTML = '<p style="font-size:.875rem;color:var(--gray-400);text-align:center;padding:2rem 0">Todavía no hay mensajes en tu historial.</p>';
+    return;
+  }
+  lista.innerHTML = '';
+  historial.forEach(item => {
+    const fecha = new Date(item.fecha);
+    const fechaTexto = fecha.toLocaleDateString('es', { day: '2-digit', month: 'short' }) + ' · ' + fecha.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+
+    const row = document.createElement('div');
+    row.className = 'hist-row';
+
+    const meta = document.createElement('div');
+    meta.className = 'hist-meta';
+    const spanFecha = document.createElement('span');
+    spanFecha.className = 'hist-fecha';
+    spanFecha.textContent = fechaTexto;
+    const spanTono = document.createElement('span');
+    spanTono.className = 'hist-tono-badge';
+    spanTono.textContent = TONOS_LABEL[item.tono] || item.tono || '';
+    meta.appendChild(spanFecha);
+    meta.appendChild(spanTono);
+
+    // texto_mejorado viene de GPT y se pinta con textContent (no innerHTML)
+    // para no correr riesgo de interpretar como HTML nada de lo que devuelva.
+    const texto = document.createElement('div');
+    texto.className = 'hist-texto';
+    texto.textContent = item.texto_mejorado;
+
+    const acciones = document.createElement('div');
+    acciones.className = 'hist-acciones';
+    const btnReusar = document.createElement('button');
+    btnReusar.className = 'btn-use';
+    btnReusar.textContent = 'Reutilizar';
+    btnReusar.onclick = () => reutilizarHistorial(item.id);
+    const btnBorrar = document.createElement('button');
+    btnBorrar.className = 'btn-del';
+    btnBorrar.title = 'Eliminar del historial';
+    btnBorrar.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>';
+    btnBorrar.onclick = () => eliminarHistorialItem(item.id);
+    acciones.appendChild(btnReusar);
+    acciones.appendChild(btnBorrar);
+
+    row.appendChild(meta);
+    row.appendChild(texto);
+    row.appendChild(acciones);
+    lista.appendChild(row);
+  });
+}
+
+/** Carga un mensaje del historial de vuelta al compositor de texto, para reutilizarlo o editarlo. */
+function reutilizarHistorial(id) {
+  const item = leerHistorial().find(h => h.id === id);
+  if (!item) return;
+  const textarea = document.getElementById('textarea-msg');
+  textarea.value = item.texto_original;
+  actualizarContador(textarea);
+  ddSetValue('tono-texto', item.tono);
+  ddSetValue('idioma-texto', item.idioma);
+  cambiarTab('texto', document.getElementById('tabBtnTexto'));
+  textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  textarea.focus();
+  mostrarToast('Mensaje cargado. Puedes editarlo antes de mejorarlo de nuevo.');
+}
+
+function eliminarHistorialItem(id) {
+  const historial = leerHistorial().filter(h => h.id !== id);
+  localStorage.setItem(HISTORIAL_KEY, JSON.stringify(historial));
+  cargarHistorial();
+}
+
+/** Diálogo de confirmación (mismo patrón que confirmarEliminar) antes de borrar todo el historial. */
+function confirmarLimpiarHistorial() {
+  if (leerHistorial().length === 0) return;
+  clearInterval(toastIntervalId);
+  const toast = document.getElementById('toast');
+  toast.innerHTML = `¿Borrar todo el historial de mensajes?
+    <div style="display:flex;gap:8px;margin-top:10px;justify-content:center">
+      <button onclick="limpiarHistorial()" style="background:#DC2626;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:inherit">Borrar</button>
+      <button onclick="cerrarToast()" style="background:rgba(255,255,255,.15);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-family:inherit">Cancelar</button>
+    </div>`;
+  toast.className = 'toast show error';
+}
+
+function limpiarHistorial() {
+  cerrarToast();
+  localStorage.removeItem(HISTORIAL_KEY);
+  cargarHistorial();
+  mostrarToast('Historial borrado');
+}
+
+// =====================
+// INTEGRACIÓN CON MICROSOFT TEAMS
+// =====================
+// La URL del webhook se guarda en este navegador (localStorage), igual
+// que el resto de preferencias de la app (voz activa, etc.). El envío
+// en sí no se hace directo desde el navegador porque el webhook de
+// Teams no responde con cabeceras CORS para peticiones de otro origen;
+// pasa por /enviar-teams/, que hace esa llamada del lado del servidor.
+const TEAMS_WEBHOOK_KEY = 'teams_webhook_url';
+
+/** Precarga el campo de configuración con el webhook ya guardado (si hay uno) al entrar a "Mis voces". */
+function cargarWebhookTeamsGuardado() {
+  const input = document.getElementById('teamsWebhookInput');
+  if (input) input.value = localStorage.getItem(TEAMS_WEBHOOK_KEY) || '';
+}
+
+/** Guarda la URL del webhook de Teams; si se deja vacía, borra la configuración guardada. */
+function guardarWebhookTeams() {
+  const input = document.getElementById('teamsWebhookInput');
+  const estado = document.getElementById('teamsStatus');
+  const url = input.value.trim();
+
+  if (!url) {
+    localStorage.removeItem(TEAMS_WEBHOOK_KEY);
+    estado.textContent = '';
+    mostrarToast('Webhook de Teams borrado');
+    return;
+  }
+  try {
+    new URL(url);
+  } catch (e) {
+    mostrarToast('Esa URL no parece válida', 'error');
+    return;
+  }
+  localStorage.setItem(TEAMS_WEBHOOK_KEY, url);
+  estado.textContent = 'Webhook guardado. Ya puedes usar "Enviar a Teams" desde cualquier mensaje.';
+  mostrarToast('Webhook de Teams guardado');
+}
+
+/** Envía `texto` al canal de Teams configurado a través del backend. */
+async function enviarTextoATeams(texto) {
+  const webhookUrl = localStorage.getItem(TEAMS_WEBHOOK_KEY);
+  if (!webhookUrl) { mostrarToast('Primero configura el webhook de Teams en "Mis voces"', 'warn', 5000); return; }
+
+  try {
+    const res = await fetch('/enviar-teams/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ webhook_url: webhookUrl, texto }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    mostrarToast('Mensaje enviado a Teams');
+  } catch (e) {
+    mostrarToast(e.message || 'No se pudo enviar a Teams', 'error');
+  }
+}
+
+/** Botón "Enviar a Teams" de la sección de resultado: manda el mensaje ya mejorado. */
+function enviarATeams() {
+  const texto = document.getElementById('texto-mejorado').textContent;
+  if (!texto || texto === '—') { mostrarToast('Genera un mensaje primero', 'error'); return; }
+  enviarTextoATeams(texto);
+}
+
+/** Botón "Enviar mensaje de prueba" de la configuración de Teams. */
+function probarWebhookTeams() {
+  enviarTextoATeams('Mensaje de prueba desde Líder Activo. Si ves esto en el canal, la integración con Teams está funcionando.');
 }

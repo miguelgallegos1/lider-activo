@@ -50,6 +50,7 @@ Cada pantalla es un documento HTML independiente (arquitectura *multi-page appli
 | POST | `/clonar-voz/` | `entrenar_voz` | Recibe la(s) muestra(s) de audio → ElevenLabs crea la voz clonada (Instant Voice Cloning) |
 | GET | `/listar-voces/` | `listar_voces` | Devuelve las voces disponibles en la cuenta de ElevenLabs (propias + de stock) |
 | POST | `/eliminar-voz/` | `eliminar_voz` | Elimina una voz clonada de la cuenta de ElevenLabs |
+| POST | `/enviar-teams/` | `enviar_teams` | Reenvía un mensaje ya mejorado a un canal de Microsoft Teams, a través del webhook que el propio usuario configuró |
 
 Toda la lógica de negocio (llamadas a OpenAI/ElevenLabs, validaciones) vive exclusivamente en `voiceapp/voiceapp/views.py`; las plantillas HTML no contienen lógica de servidor.
 
@@ -74,6 +75,18 @@ El **prompt del sistema** de `mejorar_texto()` está escrito siguiendo la guía 
 | Voices (listar/eliminar) | `listar_voces()`, `eliminar_voz()` | Gestiona el catálogo de voces de la cuenta (no hay tabla propia: ElevenLabs es la fuente de verdad) |
 
 **Nota importante:** esta app usa **Whisper (OpenAI)** para transcribir audio, no el servicio de Speech-to-Text de ElevenLabs — son dos proveedores distintos para dos tareas distintas (transcripción vs. síntesis/clonación de voz).
+
+### 5.3 Historial de mensajes (solo en el navegador)
+
+La pestaña "Historial" de Mensajes guarda los últimos 30 mensajes mejorados (texto original, texto mejorado, tono e idioma) en `localStorage`, **no en el servidor**: coherente con la decisión de no tener base de datos de negocio (sección 2). El audio no se persiste (evita inflar `localStorage` con base64 y no duplica un dato sensible más de lo necesario). Permite "Reutilizar" un mensaje anterior (lo recarga en el compositor de texto) o eliminarlo.
+
+### 5.4 Integración con Microsoft Teams
+
+Permite enviar el mensaje ya mejorado directamente a un canal de Teams, a través de un **Incoming Webhook** que el propio usuario crea desde su canal (Teams: *canal → "⋯" → Workflows → plantilla "Send webhook alerts to a channel"*; es el mecanismo vigente — Microsoft retiró en 2026 los antiguos "Office 365 Connectors"). La URL del webhook se guarda en `localStorage`, igual que el resto de preferencias del usuario.
+
+**Por qué el envío pasa por el backend (`enviar_teams()`) y no se llama directo desde el navegador:** el webhook de Teams no responde con cabeceras CORS para peticiones desde otro origen, así que un `fetch()` directo desde JavaScript sería bloqueado por el navegador. El servidor hace esa llamada por su cuenta con la librería `requests` (sin restricción CORS, porque CORS es una regla que solo aplica a peticiones iniciadas por un navegador).
+
+**Por qué se valida el dominio de la URL en el servidor:** al ser un endpoint público (`/enviar-teams/`), sin esa validación cualquiera podría mandarle una URL arbitraria y usar el servidor como *proxy* para reenviar peticiones HTTP a donde quiera (un riesgo de *SSRF — Server-Side Request Forgery*). `enviar_teams()` solo reenvía el mensaje si el host de la URL termina en un dominio real de Microsoft (`logic.azure.com`, `powerautomate.com`, `powerplatform.com`, `flow.microsoft.com`, o el legado `webhook.office.com`).
 
 ## 6. Parámetros clave — "temperature" (pregunta frecuente)
 

@@ -35,6 +35,7 @@ urlpatterns = [
     path('procesar-audio/', views.procesar_audio),   # transcribe un audio grabado, lo mejora y genera su audio
     path('listar-voces/', views.listar_voces),       # lista las voces disponibles en la cuenta de ElevenLabs
     path('eliminar-voz/', views.eliminar_voz),       # elimina una voz clonada por el usuario
+    path('enviar-teams/', views.enviar_teams),       # reenvía un mensaje ya mejorado a un canal de Microsoft Teams
 
     # Fase de entrenamiento de voz: recibe la muestra de audio y la
     # envía a ElevenLabs para crear la voz clonada.

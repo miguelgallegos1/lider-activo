@@ -132,6 +132,10 @@ textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3p
 .btn-secondary:hover { background: var(--gray-200); }
 .btn-whatsapp { background: #25D366; color: white; }
 .btn-whatsapp:hover { background: #1DA851; }
+.btn-teams { background: #5B5FC7; color: white; }
+.btn-teams:hover { background: #464775; }
+.btn-link-danger { background: none; border: none; color: #DC2626; font-size: .8rem; font-weight: 600; cursor: pointer; font-family: inherit; padding: 4px 6px; }
+.btn-link-danger:hover { text-decoration: underline; }
 .btn svg { width: 16px; height: 16px; }
 
 /* RECORD */
@@ -199,6 +203,20 @@ audio { width: 100%; border-radius: 8px; margin-bottom: 1rem; }
 .voices-empty p { font-size:.875rem;color:var(--gray-400); }
 
 .voice-stock-badge { font-size: .65rem; padding: 2px 7px; border-radius: 10px; background: var(--gray-100); color: var(--gray-400); font-weight: 600; white-space: nowrap; }
+
+/* HISTORIAL DE MENSAJES */
+.hist-row { padding: 12px 14px; border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 8px; transition: background .2s; }
+.hist-row:hover { background: var(--gray-50); }
+.hist-row:last-child { margin-bottom: 0; }
+.hist-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.hist-fecha { font-size: .75rem; color: var(--gray-400); }
+.hist-tono-badge { font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: var(--brand-light); color: var(--brand); text-transform: capitalize; }
+.hist-texto { font-size: .875rem; color: var(--gray-800); line-height: 1.5; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.hist-acciones { display: flex; gap: 6px; }
+
+/* INTEGRACIÓN CON MICROSOFT TEAMS */
+.teams-input { flex: 1; width: 100%; padding: .6rem .8rem; font-size: .875rem; font-family: inherit; border: 1px solid var(--gray-200); border-radius: 8px; background: var(--gray-50); color: var(--gray-800); outline: none; transition: border-color .2s, background-color .2s; }
+.teams-input:focus { border-color: var(--brand); background: white; box-shadow: 0 0 0 3px rgba(3,133,84,.12); }
 
 /* FOOTER */
 .app-footer { text-align: center; padding: 1.75rem 1rem 1.5rem; font-size: .72rem; color: var(--gray-400); border-top: 1px solid var(--gray-200); margin-top: 2rem; line-height: 1.6; }

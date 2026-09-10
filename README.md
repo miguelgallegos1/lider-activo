@@ -12,7 +12,7 @@ La app tiene 3 pantallas, cada una con su propia URL:
 |---|---|---|
 | Autorización | `/` | Punto de entrada real de la app. Aviso de tratamiento de un dato biométrico (LOPDP Ecuador); sin aceptar no se puede continuar. Si se rechaza, se queda en la misma pantalla (sin navegar) con opción de reintentar. |
 | Entrenar mi voz | `/entrenar-voz/` | Grabar (con guion de lectura sugerido, colapsado por defecto) o subir un archivo de audio (1–3min) y clonarlo con ElevenLabs. Puede saltarse sin entrenar. |
-| Mensajes | `/mensajes/` | Pantalla principal: escribir o grabar un mensaje, elegir tono/idioma/voz, mejorarlo con IA (GPT, con filtro de contenido ofensivo/amenazas) y generar el audio final. También lista y gestiona ("Mis voces") las voces clonadas. |
+| Mensajes | `/mensajes/` | Pantalla principal (arranca en "Grabar mensaje"): escribir o grabar un mensaje, elegir tono/idioma/voz, mejorarlo con IA (GPT, con filtro de contenido ofensivo/amenazas) y generar el audio final. También lista/gestiona ("Mis voces") las voces clonadas, guarda un **historial de mensajes** (local, en el navegador) y permite **enviar el mensaje a un canal de Microsoft Teams** vía webhook. |
 
 ## Stack
 
