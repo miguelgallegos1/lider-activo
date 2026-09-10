@@ -81,7 +81,7 @@ function toggleGuion(){
 }
 
 /** Muestra una notificación abajo-centro con contador regresivo visible y botón para cerrarla antes. */
-function toast(msg,type='ok',dur=3500){
+function toast(msg,type='ok',dur=3000){
   const t=document.getElementById('toast');
   clearInterval(toastIntervalId);
   let restante=Math.max(1,Math.round(dur/1000));
@@ -99,6 +99,26 @@ function toast(msg,type='ok',dur=3500){
 function cerrarToast(){
   clearInterval(toastIntervalId);
   document.getElementById('toast').classList.remove('show');
+}
+
+/**
+ * Muestra un toast de confirmación (texto arriba, botones abajo, sin
+ * cerrarse solo: a diferencia de los toasts informativos, uno de
+ * estos exige elegir "Cancelar" o la acción antes de desaparecer).
+ * `onConfirmar` se ejecuta solo si se elige el botón de acción.
+ */
+function toastConfirmar(mensaje,textoAccion,onConfirmar){
+  clearInterval(toastIntervalId);
+  const t=document.getElementById('toast');
+  t.innerHTML=`<div class="toast-confirm-msg"></div>
+    <div class="toast-actions">
+      <button type="button" class="toast-btn-secondary">Cancelar</button>
+      <button type="button" class="toast-btn-primary">${textoAccion}</button>
+    </div>`;
+  t.querySelector('.toast-confirm-msg').textContent=mensaje;
+  t.querySelector('.toast-btn-secondary').onclick=()=>t.classList.remove('show');
+  t.querySelector('.toast-btn-primary').onclick=()=>{t.classList.remove('show');onConfirmar();};
+  t.className='toast show error confirm';
 }
 
 /** Hay una grabación, una grabación en curso, o un archivo elegido que todavía no se clonó. */
@@ -119,14 +139,11 @@ function hayCambiosSinGuardar(){
 function confirmarNavegacion(event,destino){
   if(!hayCambiosSinGuardar())return true;
   event.preventDefault();
-  clearInterval(toastIntervalId);
-  const t=document.getElementById('toast');
-  t.innerHTML=`Tienes una muestra de voz grabada o cargada que todavía no clonaste. Si sales ahora, la vas a perder.
-    <div style="display:flex;gap:8px;margin-top:10px;justify-content:center">
-      <button onclick="window.location.href='${destino}'" style="background:#DC2626;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:inherit">Salir de todas formas</button>
-      <button onclick="cerrarToast()" style="background:rgba(255,255,255,.15);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-family:inherit">Quedarme</button>
-    </div>`;
-  t.className='toast show error';
+  toastConfirmar(
+    'Tienes una voz grabada o un archivo cargado que todavía no clonaste. Si sales ahora, lo vas a perder.',
+    'Salir de todas formas',
+    ()=>{window.location.href=destino;}
+  );
   return false;
 }
 
@@ -219,7 +236,7 @@ async function toggleRec(){
           audioBlob=null;
           document.getElementById('btnCloneRec').disabled=true;
           document.getElementById('recStatus').textContent='No se detectó voz (grabación en silencio). Revisa el micrófono e intenta de nuevo.';
-          toast('La grabación está en silencio, no se detectó voz','warn',5000);
+          toast('La grabación está en silencio, no se detectó voz','warn',3000);
           return;
         }
 
@@ -334,7 +351,7 @@ function archivoSeleccionado(){
     if(await audioEsSilencio(f)){
       document.getElementById('btnCloneFile').disabled=true;
       document.getElementById('fileName').textContent=f.name+' — no se detectó voz (silencio)';
-      toast('Ese archivo está en silencio, no se detectó voz','warn',5000);
+      toast('Ese archivo está en silencio, no se detectó voz','warn',3000);
       return;
     }
 
@@ -428,7 +445,7 @@ async function enviarClone(form){
       toast('¡Voz clonada correctamente!','success',2500);
       setTimeout(()=>window.location='/mensajes/',2500);
     } else if(data.limite){
-      toast(data.mensaje,'warn',6000);
+      toast(data.mensaje,'warn',3000);
       setTimeout(()=>window.location='/mensajes/',3000);
     } else {
       toast(data.error||'No se pudo clonar la voz. Intenta de nuevo.','error');

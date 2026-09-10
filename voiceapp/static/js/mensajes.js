@@ -275,7 +275,7 @@ async function toggleGrabacion() {
         audioBlob = null;
         document.getElementById('btn-audio').disabled = true;
         document.getElementById('record-status').textContent = 'No se detectó voz (grabación en silencio). Revisa el micrófono e intenta de nuevo.';
-        mostrarToast('La grabación está en silencio, no se detectó voz', 'warn', 5000);
+        mostrarToast('La grabación está en silencio, no se detectó voz', 'warn', 3000);
         return;
       }
 
@@ -296,7 +296,7 @@ async function toggleGrabacion() {
       document.getElementById('timer').textContent = `${segundos}s grabando...`;
       if (segundos === 165 && !avisoTiempoMostrado) {
         avisoTiempoMostrado = true;
-        mostrarToast('Quedan 15 segundos de grabación', 'warn', 4000);
+        mostrarToast('Quedan 15 segundos de grabación', 'warn', 3000);
       }
       if (segundos >= 180) mediaRecorder.stop();
     }, 1000);
@@ -394,7 +394,7 @@ async function compartirWhatsApp() {
   const archivo = new File([bytes], 'mensaje-profesional.mp3', { type: 'audio/mpeg' });
 
   if (!navigator.canShare || !navigator.canShare({ files: [archivo] })) {
-    mostrarToast('Tu navegador no permite compartir audio directo. Usa "Descargar audio" y adjúntalo desde WhatsApp.', 'warn', 6000);
+    mostrarToast('Tu navegador no permite compartir audio directo. Usa "Descargar audio" y adjúntalo desde WhatsApp.', 'warn', 3000);
     return;
   }
 
@@ -425,7 +425,7 @@ function compartirCorreo() {
 let toastIntervalId = null;
 
 /** Muestra una notificación abajo-centro con contador regresivo visible y botón para cerrarla antes. */
-function mostrarToast(msg, tipo = 'ok', durMs = 3500) {
+function mostrarToast(msg, tipo = 'ok', durMs = 3000) {
   const toast = document.getElementById('toast');
   clearInterval(toastIntervalId);
   let restante = Math.max(1, Math.round(durMs / 1000));
@@ -453,6 +453,26 @@ function cerrarToast() {
   document.getElementById('toast').classList.remove('show');
 }
 
+/**
+ * Muestra un toast de confirmación (texto arriba, botones abajo, sin
+ * cerrarse solo: a diferencia de los toasts informativos, uno de
+ * estos exige elegir "Cancelar" o la acción antes de desaparecer).
+ * `onConfirmar` se ejecuta solo si se elige el botón de acción.
+ */
+function toastConfirmar(mensaje, textoAccion, onConfirmar) {
+  clearInterval(toastIntervalId);
+  const t = document.getElementById('toast');
+  t.innerHTML = `<div class="toast-confirm-msg"></div>
+    <div class="toast-actions">
+      <button type="button" class="toast-btn-secondary">Cancelar</button>
+      <button type="button" class="toast-btn-primary">${textoAccion}</button>
+    </div>`;
+  t.querySelector('.toast-confirm-msg').textContent = mensaje;
+  t.querySelector('.toast-btn-secondary').onclick = () => t.classList.remove('show');
+  t.querySelector('.toast-btn-primary').onclick = () => { t.classList.remove('show'); onConfirmar(); };
+  t.className = 'toast show error confirm';
+}
+
 /** Hay texto escrito, una grabación (lista o en curso) sin procesar todavía. */
 function hayCambiosSinGuardar() {
   const texto = document.getElementById('textarea-msg').value.trim();
@@ -471,14 +491,11 @@ function hayCambiosSinGuardar() {
 function confirmarNavegacion(event, destino) {
   if (!hayCambiosSinGuardar()) return true;
   event.preventDefault();
-  clearInterval(toastIntervalId);
-  const t = document.getElementById('toast');
-  t.innerHTML = `Tienes un mensaje escrito o grabado que todavía no procesaste. Si sales ahora, lo vas a perder.
-    <div style="display:flex;gap:8px;margin-top:10px;justify-content:center">
-      <button onclick="window.location.href='${destino}'" style="background:#DC2626;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:inherit">Salir de todas formas</button>
-      <button onclick="cerrarToast()" style="background:rgba(255,255,255,.15);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-family:inherit">Quedarme</button>
-    </div>`;
-  t.className = 'toast show error';
+  toastConfirmar(
+    'Tienes un mensaje escrito o grabado que todavía no procesaste. Si sales ahora, lo vas a perder.',
+    'Salir de todas formas',
+    () => { window.location.href = destino; }
+  );
   return false;
 }
 
@@ -506,16 +523,9 @@ async function eliminarVoz(voiceId) {
     mostrarToast('Error de conexión. Revisa tu internet e intenta de nuevo.', 'error');
   }
 }
-/** Reutiliza el mismo elemento de toast como diálogo de confirmación (Eliminar/Cancelar) antes de borrar una voz. */
+/** Diálogo de confirmación (mismo patrón que toastConfirmar) antes de borrar una voz. */
 function confirmarEliminar(voiceId, name) {
-  clearInterval(toastIntervalId);
-  const toast = document.getElementById('toast');
-  toast.innerHTML = `¿Eliminar la voz "<strong>${name}</strong>"?
-    <div style="display:flex;gap:8px;margin-top:10px;justify-content:center">
-      <button onclick="eliminarVoz('${voiceId}')" style="background:#DC2626;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:inherit">Eliminar</button>
-      <button onclick="cerrarToast()" style="background:rgba(255,255,255,.15);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-family:inherit">Cancelar</button>
-    </div>`;
-  toast.className = 'toast show error';
+  toastConfirmar(`¿Eliminar la voz "${name}"? No podrás deshacer esta acción.`, 'Eliminar', () => eliminarVoz(voiceId));
 }
 
 // =====================
@@ -630,14 +640,7 @@ function eliminarHistorialItem(id) {
 /** Diálogo de confirmación (mismo patrón que confirmarEliminar) antes de borrar todo el historial. */
 function confirmarLimpiarHistorial() {
   if (leerHistorial().length === 0) return;
-  clearInterval(toastIntervalId);
-  const toast = document.getElementById('toast');
-  toast.innerHTML = `¿Borrar todo el historial de mensajes?
-    <div style="display:flex;gap:8px;margin-top:10px;justify-content:center">
-      <button onclick="limpiarHistorial()" style="background:#DC2626;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:inherit">Borrar</button>
-      <button onclick="cerrarToast()" style="background:rgba(255,255,255,.15);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-family:inherit">Cancelar</button>
-    </div>`;
-  toast.className = 'toast show error';
+  toastConfirmar('¿Borrar todo el historial de mensajes? Se perderán los mensajes guardados en este navegador.', 'Borrar', limpiarHistorial);
 }
 
 function limpiarHistorial() {

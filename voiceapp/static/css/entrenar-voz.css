@@ -172,6 +172,18 @@ main{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
 .toast-close{flex-shrink:0;background:none;border:none;color:rgba(255,255,255,.7);font-size:1.1rem;line-height:1;cursor:pointer;padding:2px 4px}
 .toast-close:hover{color:white}
 
+/* TOAST DE CONFIRMACIÓN — texto arriba, botones abajo; más grande que
+   el toast informativo y sin cerrarse solo (exige elegir una opción). */
+.toast.confirm{flex-direction:column;align-items:stretch;gap:0;max-width:min(92vw,400px);padding:1.1rem 1.2rem;border-radius:14px}
+.toast-confirm-msg{font-size:.95rem;line-height:1.55;text-align:left;margin-bottom:14px}
+.toast-actions{display:flex;gap:10px;justify-content:flex-end}
+.toast-btn-primary,.toast-btn-secondary{flex:1;padding:10px 14px;border-radius:9px;font-size:.85rem;font-weight:600;font-family:inherit;cursor:pointer;border:none;transition:background .15s,transform .1s}
+.toast-btn-primary{background:white;color:var(--danger)}
+.toast-btn-primary:hover{background:#f5f5f5}
+.toast-btn-secondary{background:rgba(255,255,255,.14);color:white}
+.toast-btn-secondary:hover{background:rgba(255,255,255,.24)}
+.toast-btn-primary:active,.toast-btn-secondary:active{transform:scale(.97)}
+
 @media(max-width:600px){
   nav{padding:10px 1rem;height:auto;min-height:60px;flex-wrap:wrap;row-gap:8px}
   .card{padding:1.25rem}
