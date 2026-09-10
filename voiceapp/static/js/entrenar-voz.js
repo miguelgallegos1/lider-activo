@@ -112,6 +112,14 @@ async function toggleRec(){
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
     chunks=[];
+
+    // Al empezar una grabación nueva se limpia el reproductor de la
+    // anterior (si había una), para no dejar sonando/visible un audio
+    // viejo mientras se graba el nuevo.
+    if(recPreviewUrl){URL.revokeObjectURL(recPreviewUrl);recPreviewUrl=null;}
+    const previewPrevio=document.getElementById('recPreview');
+    previewPrevio.hidden=true; previewPrevio.removeAttribute('src');
+
     mediaRecorder=new MediaRecorder(stream);
     mediaRecorder.ondataavailable=e=>chunks.push(e.data);
     mediaRecorder.onstop=()=>{
@@ -220,6 +228,16 @@ function archivoSeleccionado(){
     document.getElementById('fileInput').value='';
     return;
   }
+
+  // Se limpia el reproductor del archivo cargado previamente (si
+  // había uno) apenas se elige uno nuevo, antes incluso de validar su
+  // duración: así no queda sonando/visible el audio viejo mientras se
+  // valida el nuevo.
+  if(filePreviewUrl){URL.revokeObjectURL(filePreviewUrl);filePreviewUrl=null;}
+  const previewPrevio=document.getElementById('filePreview');
+  previewPrevio.hidden=true; previewPrevio.removeAttribute('src');
+  document.getElementById('fileReady').style.display='none';
+  document.getElementById('btnCloneFile').disabled=true;
 
   const url=URL.createObjectURL(f);
   const audio=new Audio();
