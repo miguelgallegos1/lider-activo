@@ -94,6 +94,20 @@ Cada mensaje procesado muestra un grid de íconos para enviarlo por el canal que
 
 Una primera versión de "enviar a Teams" pasaba por un endpoint propio del backend (`/enviar-teams/`) que reenviaba el mensaje a un *Incoming Webhook* de Teams configurado por el usuario. Se reemplazó por el deep link de arriba: es más simple (no requiere que el usuario cree y pegue una URL de webhook, un paso confuso para quien no conoce Power Automate) y no depende de si la empresa organiza su Teams en equipos/canales o solo en chats directos.
 
+### 5.6 Costo aproximado por petición (tokens y créditos)
+
+Precios verificados en las páginas oficiales de precios de OpenAI y ElevenLabs (setiembre 2026 — **confirmar antes de presupuestar**, ambos proveedores los ajustan con frecuencia).
+
+| Servicio | Función | Se cobra por | Tarifa oficial | Dónde se usa en la app |
+|---|---|---|---|---|
+| OpenAI · Chat Completions (`gpt-4o-mini`) | `mejorar_texto()` | Tokens (entrada + salida) | US$0.15 / 1M tokens de entrada · US$0.60 / 1M tokens de salida (US$0.075 / 1M si el prompt queda cacheado) | 1 vez por mensaje mejorado (escrito o transcrito) |
+| OpenAI · Whisper (`whisper-1`) | `procesar_audio()`, y la detección de idioma en `entrenar_voz()` | Minutos de audio | US$0.006 / minuto | 1 vez por mensaje grabado + 1 vez por voz clonada (solo para detectar el idioma) |
+| OpenAI · Moderación (`omni-moderation-latest`) | `verificar_contenido_prohibido()` | — | **Gratis** | En cada mensaje y en cada nombre de voz, antes de mandarlo a GPT/nombrar la voz |
+| ElevenLabs · Text-to-Speech (`eleven_multilingual_v2`) | `texto_a_audio()` | Caracteres del texto ya mejorado (1 carácter = 1 crédito) | ≈ US$0.10 / 1.000 caracteres (referencia de la API; el costo real por crédito baja en los planes más grandes) | 1 vez por mensaje procesado (texto o audio) |
+| ElevenLabs · Instant Voice Cloning | `entrenar_voz()` | **No consume créditos por uso** — está incluido desde el plan Starter y limitado por la cantidad de "voice slots" del plan, no por petición | — | 1 vez por voz clonada |
+
+**Estimación de un mensaje típico:** un mensaje corto (~50-150 caracteres escritos, resultado mejorado de ~200-400 caracteres) cuesta en la práctica **menos de US$0.001 en OpenAI** (Chat Completions; la moderación es gratis) y **~200-400 créditos de ElevenLabs** (≈ US$0.02-0.04 al valor de referencia de la API) por el audio generado. Grabar en vez de escribir suma el costo de Whisper (~US$0.006 por cada 60 segundos transcritos). Clonar una voz nueva no tiene costo por uso en ElevenLabs, solo cuenta contra el límite de voces del plan; y agrega un solo llamado extra a Whisper (para detectar el idioma) de hasta US$0.018 si la muestra dura los 3 minutos completos.
+
 ## 6. Parámetros clave — "temperature" (pregunta frecuente)
 
 Esta es una pregunta natural del tribunal porque **"temperature" existe en OpenAI pero no en la parte de ElevenLabs que usa esta app.** Vale la pena tenerlo claro:
@@ -172,6 +186,9 @@ WAV, MP3, M4A y WebM. Se agregó soporte a M4A específicamente porque los iPhon
 
 **¿Cómo se garantiza que la voz generada en "Mensajes" respete la voz clonada elegida?**
 `texto_a_audio()` recibe explícitamente el `voice_id` seleccionado por el usuario (o `None` para la voz por defecto) y lo pasa a la llamada de ElevenLabs; se corrigió un bug donde el flujo de audio grabado no estaba leyendo ese `voice_id` del formulario y siempre usaba la voz por defecto.
+
+**¿Cuánto cuesta procesar un mensaje?**
+Ver el detalle completo en la sección 5.6. En resumen: la mejora de texto con GPT y la moderación cuestan una fracción de centavo (menos de US$0.001) o son directamente gratis (moderación); lo que más pesa es el texto-a-voz de ElevenLabs (créditos = caracteres del mensaje mejorado). Clonar una voz no tiene costo por uso en ElevenLabs — solo cuenta contra el límite de voces del plan — pero sí agrega una llamada a Whisper para detectar el idioma (hasta US$0.018 si la muestra dura los 3 minutos completos).
 
 ---
 *Generado como apoyo para la sustentación del proyecto de graduación "Líder Activo" — Ingeniería en Software.*
